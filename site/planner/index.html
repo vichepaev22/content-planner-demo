@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f4ef">
+  <title>Ритм — контент по делу</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+<a href="../" style="position:fixed;right:16px;bottom:16px;z-index:1000;background:#253e34;color:white;padding:10px 16px;border-radius:9px;font:12px Arial;text-decoration:none">← Все макеты</a>
+  <aside class="sidebar">
+    <a class="brand" href="#start" aria-label="Ритм, начало"><span class="brand-mark">р.</span><span>ритм<small>контент по делу</small></span></a>
+    <div class="side-caption">ВАША КОНТЕНТ-СТУДИЯ</div>
+    <nav aria-label="Этапы создания плана">
+      <button data-step="0" class="nav-item active"><span>00</span> Начало <i>↗</i></button>
+      <button data-step="1" class="nav-item"><span>01</span> О бизнесе <i>↗</i></button>
+      <button data-step="2" class="nav-item" disabled><span>02</span> Что работает <i>↗</i></button>
+      <button data-step="3" class="nav-item" disabled><span>03</span> Основа плана <i>↗</i></button>
+      <button data-step="4" class="nav-item" disabled><span>04</span> Контент-план <i>↗</i></button>
+    </nav>
+    <div class="side-note"><span class="tiny-orbit">✳</span><p>Меньше «что бы написать».<br>Больше смысла<br>в каждой публикации.</p></div>
+    <button class="text-button side-questions" id="questions-button">Вопросы к проекту <span>↗</span></button>
+    <div class="side-bottom">ПЕРВЫЙ ПРОТОТИП <span>v0.1</span></div>
+  </aside>
+
+  <div class="workspace">
+    <header class="topbar"><span>Студия <b>/</b> <span id="breadcrumb">Новый проект</span></span><span class="demo-label"><i></i> Демо · вымышленные данные</span></header>
+    <main id="main" tabindex="-1">
+      <section id="screen-0" class="screen">
+        <div class="welcome-grid">
+          <div class="welcome-copy">
+            <div class="eyebrow"><span class="small-line"></span> ИЗ ХАОСА В СИСТЕМУ</div>
+            <h1>У вашего контента<br>появится <em>ритм.</em></h1>
+            <p class="lead">От ссылок на соцсети до понятного плана: что публиковать, для кого и к какому действию вести.</p>
+            <div class="welcome-actions"><button class="button primary" id="start-button">Собрать свой план <span>↗</span></button><button class="text-button" id="example-button">Посмотреть пример →</button></div>
+            <div class="welcome-facts"><div><strong>Ваш бизнес</strong><span>в центре стратегии</span></div><div><strong>Месяц → год</strong><span>нужный вам горизонт</span></div><div><strong>Каждый пост</strong><span>с понятной задачей</span></div></div>
+            <div class="scope-note">Интерактивная концепция. Анализ и поиск показаны на примерах; ссылки не загружаются.</div>
+          </div>
+          <div class="bot-scene">
+            <div class="scene-caption">НАЧИНАЕТСЯ С ПРОСТОГО ДИАЛОГА <span>↙</span></div>
+            <div class="chat-phone">
+              <div class="chat-head"><span class="chat-avatar">р.</span><div><strong>Ритм</strong><small>бот · демонстрация</small></div><span class="chat-dots">•••</span></div>
+              <div class="chat-body" id="chat-body">
+                <div class="chat-date">Сценарий знакомства</div>
+                <div class="bubble bot">Привет! Помогу превратить ваши идеи и опыт в контент-план.</div>
+                <div class="bubble bot">Посмотрим на ваш бизнес, определим цель и соберём публикации в одну систему.</div>
+                <div class="bubble bot">С чего начнём?</div>
+              </div>
+              <div class="chat-actions"><button id="chat-plan">Составить план ↗</button><button id="chat-empty">Соцсетей пока нет</button></div>
+              <div class="chat-foot">Бот помогает начать · план живёт в мини-приложении</div>
+            </div>
+            <div class="scene-stamp"><span>от идеи</span><strong>к действию ↗</strong></div>
+          </div>
+        </div>
+        <div class="path-strip"><div><span>01</span><p>Разобраться<strong>в своём контенте</strong></p></div><i>→</i><div><span>02</span><p>Найти опору<strong>в данных и воронке</strong></p></div><i>→</i><div><span>03</span><p>Получить план<strong>и начать публиковать</strong></p></div></div>
+      </section>
+
+      <section id="screen-1" class="screen" hidden>
+        <div class="section-heading"><div><div class="eyebrow">01 / БРИФ</div><h1>Начнём с вашего дела.</h1><p class="subhead">Контент должен работать на конкретный бизнес и посильный вам темп.</p></div><button class="button subtle" id="fill-example">Заполнить примером ↗</button></div>
+        <div class="brief-layout">
+          <form id="brief-form" class="paper-panel">
+            <div class="form-grid">
+              <label class="full">Название бизнеса<input id="business" name="business" required maxlength="90" placeholder="Например, студия керамики «Форма»"></label>
+              <label class="full">Кому вы помогаете?<input id="audience" name="audience" required maxlength="200" placeholder="Кто ваши клиенты и что им нужно"></label>
+              <label class="full">Что продвигаем?<textarea id="offer" name="offer" required maxlength="500" rows="2" placeholder="Услуга, продукт или новое предложение"></textarea></label>
+              <label class="full">Ссылки на ваши соцсети <span class="optional">необязательно</span><textarea id="links" name="links" rows="2" placeholder="https://t.me/your_channel&#10;https://vk.com/your_business" aria-describedby="links-hint link-error"></textarea><small id="links-hint">По одной ссылке на строку. В прототипе ссылки не открываются.</small></label>
+              <div id="link-error" class="form-error full" role="alert" hidden></div>
+              <label>Главная цель<select id="goal" name="goal"><option value="leads">Получать обращения</option><option value="launch">Запустить новую услугу</option><option value="awareness">Повысить узнаваемость</option></select></label>
+              <label>Горизонт планирования<select id="horizon" name="horizon"><option value="1">Месяц</option><option value="6">Полгода</option><option value="12">Год</option></select></label>
+              <label>Дата начала<input id="start" name="start" type="date" value="2026-11-01" min="2020-01-01" max="2100-12-01" required></label>
+              <label>Посильный темп<select id="frequency" name="frequency"><option value="2">2 публикации в неделю</option><option value="3" selected>3 публикации в неделю</option><option value="5">5 публикаций в неделю</option></select></label>
+              <label class="full">Канал для первого плана<select id="channel" name="channel"><option>Telegram</option><option>ВКонтакте</option><option>Instagram</option></select><small>Выбор для макета. Подключение площадок ещё не определено.</small></label>
+            </div>
+            <div class="form-bottom"><span>Можно начать без соцсетей —<br>получится план по вашему брифу.</span><button class="button primary" type="submit">Дальше: разбор <span>→</span></button></div>
+          </form>
+          <aside class="brief-aside"><div class="eyebrow">НЕ ПРОСТО СПИСОК ТЕМ</div><h2>У каждой публикации<br>будет своя работа.</h2><div class="mini-post"><span class="stage-label trust">ДОВЕРИЕ</span><h3>Как устроен первый<br>мастер-класс</h3><p>Снять страх «у меня не получится»</p><div>История + фото <span>↗</span></div></div><p class="aside-copy">Тема, формат, цель и следующий шаг для читателя. Всё можно поправить под себя.</p><div class="aside-foot">Вымышленный пример для студии керамики</div></aside>
+        </div>
+      </section>
+
+      <section id="screen-2" class="screen" hidden>
+        <div class="section-heading"><div><div class="eyebrow">02 / ТОЧКА ОПОРЫ</div><h1>Сначала — что работает.</h1><p class="subhead">Наблюдения должны объяснять будущие рекомендации.</p></div><button class="text-button" data-back="1">← Вернуться к брифу</button></div>
+        <div class="analysis-toolbar"><span id="source-summary"></span><label class="switch-label"><input type="checkbox" id="unavailable"> Показать недоступный источник</label></div>
+        <div id="analysis-content"></div>
+        <div class="next-row"><span>Следующий шаг — выбрать основу будущего плана.</span><button class="button primary" id="analysis-next">К основе плана <span>→</span></button></div>
+      </section>
+
+      <section id="screen-3" class="screen" hidden>
+        <div class="section-heading"><div><div class="eyebrow">03 / СТРАТЕГИЯ</div><h1>На чём построим план?</h1><p class="subhead">Выберите одну основу для первого наброска. Позже их можно будет сочетать.</p></div><button class="text-button" data-back="2">← К разбору</button></div>
+        <div class="strategy-options" role="group" aria-label="Основа плана">
+          <button class="strategy-option selected" data-mode="funnel" aria-pressed="true"><span class="option-number">01 <i>✓</i></span><h2>Воронка<br>продаж</h2><p>От знакомства до понятного предложения.</p><span class="option-footer">Начать с логики продаж ↗</span></button>
+          <button class="strategy-option" data-mode="manual" aria-pressed="false"><span class="option-number">02 <i>✓</i></span><h2>Мои<br>конкуренты</h2><p>Добавить ссылки на тех, с кем вас сравнивают.</p><span class="option-footer">Сформировать список ↗</span></button>
+          <button class="strategy-option" data-mode="auto" aria-pressed="false"><span class="option-number">03 <i>✓</i></span><h2>Найти<br>конкурентов</h2><p>Посмотреть, как мог бы выглядеть автопоиск.</p><span class="option-footer">Демонстрация поиска ↗</span></button>
+        </div>
+        <div id="strategy-detail" class="strategy-detail"></div>
+        <div class="next-row"><span id="strategy-summary"></span><button class="button primary" id="generate">Собрать демоплан <span>↗</span></button></div>
+      </section>
+
+      <section id="screen-4" class="screen" hidden>
+        <div class="section-heading"><div><div class="eyebrow">04 / ОТ СТРАТЕГИИ К ДЕЙСТВИЮ</div><h1>Теперь есть план.</h1><p class="subhead" id="plan-subhead"></p></div><div class="heading-actions"><button class="text-button" data-back="3">Изменить основу</button><button class="button ink" id="export">Скачать CSV ↓</button></div></div>
+        <div id="stale-notice" class="notice warning" hidden>Вы изменили входные данные. Ниже прежний план. Пересоберите его на шаге «Основа плана».</div>
+        <div class="plan-banner"><div><span class="eyebrow">ЦЕЛЬ</span><strong id="plan-goal"></strong></div><div><span class="eyebrow">РИТМ</span><strong id="plan-count"></strong></div><div><span class="eyebrow">ОСНОВА</span><strong id="plan-basis"></strong></div><span class="plan-arrow">↗</span></div>
+        <div id="roadmap" hidden></div>
+        <div class="calendar-toolbar"><div><h2 id="calendar-title"></h2><span id="completion"></span></div><div class="filter-group" role="group" aria-label="Фильтр публикаций"><button data-filter="all" class="selected" aria-pressed="true">Все</button><button data-filter="awareness" aria-pressed="false">Знакомство</button><button data-filter="trust" aria-pressed="false">Доверие</button><button data-filter="offer" aria-pressed="false">Предложение</button></div></div>
+        <div class="calendar-hint">Откройте публикацию, чтобы изменить тему и призыв к действию. <span>Весь план — пример, без анализа ваших ссылок.</span></div>
+        <div id="calendar"></div>
+        <div class="notice plan-note">План — набор проверяемых гипотез. В рабочем сервисе его нужно уточнять по фактическим результатам. Публикации не отправляются в соцсети.</div>
+      </section>
+    </main>
+    <footer><span>Ритм / концепция контент-планера</span><span id="save-state">Черновик хранится только в этом браузере</span></footer>
+  </div>
+
+  <dialog id="post-dialog" aria-labelledby="post-dialog-title">
+    <div class="dialog-top"><span id="post-meta" class="eyebrow"></span><button class="icon-button" id="close-post" aria-label="Закрыть карточку">×</button></div>
+    <h2 id="post-dialog-title">Публикация</h2>
+    <form id="post-form"><label>Тема<input id="post-title" maxlength="240" required></label><label>Призыв к действию<textarea id="post-cta" maxlength="500" rows="3" required></textarea></label><div class="post-detail"><span>ЗАДАЧА</span><p id="post-purpose"></p><span>ПОЧЕМУ ЭТО ЗДЕСЬ</span><p id="post-reason"></p></div><label class="done-label"><input id="post-done" type="checkbox"> Публикация готова</label><div class="dialog-bottom"><span>Сохраняется локально</span><button class="button primary" type="submit">Сохранить →</button></div></form>
+  </dialog>
+  <dialog id="questions-dialog" aria-labelledby="questions-title"><div class="dialog-top"><span class="eyebrow">ЧТО РЕШАЕМ ДАЛЬШЕ</span><button class="icon-button" id="close-questions" aria-label="Закрыть вопросы">×</button></div><h2 id="questions-title">Пять важных вопросов.</h2><ol class="question-list"><li><strong>Кто первый пользователь?</strong><p>Один конкретный тип бизнеса, его аудитория и предложение.</p></li><li><strong>Какая соцсеть первая?</strong><p>И какая статистика реально будет доступна: ссылки, кабинет владельца или выгрузка.</p></li><li><strong>Что значит «заходит»?</strong><p>Охват, реакции, заявки или продажи — это разные результаты.</p></li><li><strong>Как устроена ваша воронка?</strong><p>Нужна ваша структура. В прототипе пока универсальный пример.</p></li><li><strong>Насколько готовый контент нужен?</strong><p>Темы, задания автору или уже тексты и сценарии видео?</p></li></ol><p class="dialog-footnote">Полный список вопросов сохранён в docs/questions.md проекта.</p></dialog>
+  <div id="toast" role="status" class="toast" hidden></div>
+</body>
+</html>

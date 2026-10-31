@@ -1,0 +1,81 @@
+{
+  "version": "2026-10-31-r1",
+  "mode": "static-demo",
+  "files": [
+    {
+      "path": "index.html",
+      "bytes": 2620,
+      "sha256": "86b688cbc3c39379a1af84a3c9a70162cf86ec6c7286065fafdd613688467be6"
+    },
+    {
+      "path": "style.css",
+      "bytes": 1829,
+      "sha256": "353f28a80bbd1fc2e05356fa14cd83e760ece9fabeba845be4a008754c2b1b49"
+    },
+    {
+      "path": "icon.svg",
+      "bytes": 522,
+      "sha256": "a2c8570322f6fb2388703ddbc2dc5792d3b6c6b3d89e592a665da25a625f191c"
+    },
+    {
+      "path": ".nojekyll",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "planner/index.html",
+      "bytes": 17034,
+      "sha256": "9c06242646876655de42bfd215b17601f0449afe9167e834a5f6caae491d795f"
+    },
+    {
+      "path": "planner/style.css",
+      "bytes": 25389,
+      "sha256": "5533b8cc98ee88742310c2a4a339b057ca6437055074442df5245f63b4bfb133"
+    },
+    {
+      "path": "planner/app.js",
+      "bytes": 32703,
+      "sha256": "bcc2b3ad6ec26bd37cf381f916a81b1b0559f4ab0128fd439d4277657790b5c7"
+    },
+    {
+      "path": "vk-connect/index.html",
+      "bytes": 6727,
+      "sha256": "f84f7401e27a55de6afbd2e7f79b6aa984775428f09a4cd476b1e91fe0336772"
+    },
+    {
+      "path": "vk-connect/style.css",
+      "bytes": 5330,
+      "sha256": "4eb9c2804fc9d0a2e24ced294eb813b42284634b7d7cff815e2de3c4d6f7d8ba"
+    },
+    {
+      "path": "vk-connect/app.mjs",
+      "bytes": 4567,
+      "sha256": "ef89fb7395a0d86adaa1ed581b7ce93f728227665d6f244f9d55d51d11e68ea1"
+    },
+    {
+      "path": "vk-connect/registration/icon.svg",
+      "bytes": 522,
+      "sha256": "a2c8570322f6fb2388703ddbc2dc5792d3b6c6b3d89e592a665da25a625f191c"
+    },
+    {
+      "path": "vk-connect/registration/icon.png",
+      "bytes": 2898,
+      "sha256": "32d8988f18caf950c3f0cb385f1e937f0c3ad4ed28768efe00198503c3ef68e5"
+    },
+    {
+      "path": "vk-connect/registration/fields.json",
+      "bytes": 829,
+      "sha256": "190a917b1b43a86ce647a19b0a522be69e172cdde91ca37e66cbdd120d3ec8d3"
+    },
+    {
+      "path": "vk-connect/registration/vk-id-registration.md",
+      "bytes": 10784,
+      "sha256": "b1daa342e6907ebdbe58853368f37d80e3cae464e86a2a2fada73ce5321e8438"
+    },
+    {
+      "path": "vk-connect/registration/technical-privacy.md",
+      "bytes": 4576,
+      "sha256": "94281d725f8ff9ce8330140d3d9a3a49406c3ba34676df0757d46082f9b15e62"
+    }
+  ]
+}

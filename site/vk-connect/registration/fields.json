@@ -1,0 +1,19 @@
+{
+  "preparedAt": "2026-10-31",
+  "name": "Content Planner",
+  "description": "Локальный инструмент владельца аккаунта для просмотра его сообществ ВКонтакте: групп, публичных страниц и событий.",
+  "platform": "Web",
+  "baseDomains": ["localhost"],
+  "trustedRedirectUrls": ["http://localhost"],
+  "confidentiality": "public",
+  "authorization": "authorization_code + PKCE S256 + state",
+  "requestedScopes": ["vkid.personal_info", "groups"],
+  "apiVersion": "5.199",
+  "readMethods": ["groups.get", "groups.getById"],
+  "icon": "icon.png",
+  "businessOwner": null,
+  "clientId": null,
+  "registrationStatus": "not_registered",
+  "liveAuthorizationStatus": "not_tested",
+  "scopeAvailability": "requires_verification_in_own_app"
+}
