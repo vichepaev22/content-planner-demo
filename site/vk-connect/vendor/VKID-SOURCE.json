@@ -1,0 +1,9 @@
+{
+  "package": "@vkid/sdk",
+  "version": "2.6.10",
+  "source": "https://registry.npmjs.org/@vkid/sdk/-/sdk-2.6.10.tgz",
+  "npmIntegrity": "sha512-aKL6bvn22At1o5/DdFH9XHpUtVObzAmPZwN/4Jm6vyt33r1n+02kXeKduFzdzpesS5eW5aFcAMzUDkybpMB9+g==",
+  "sha256": "5d81229fecf60783085847835ad059366c4c0825cef0615af560a09bfa044377",
+  "license": "MIT",
+  "modified": false
+}

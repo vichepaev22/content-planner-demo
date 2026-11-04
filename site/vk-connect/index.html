@@ -1,42 +1,12 @@
-<!doctype html>
-<html lang="ru">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Content Planner · Подключение VK</title><link rel="icon" href="registration/icon.svg" type="image/svg+xml"><link rel="stylesheet" href="style.css"><script type="module" src="app.mjs"></script></head>
-<body>
-<header class="bar"><a class="brand" href="../"><img src="registration/icon.svg" width="38" height="38" alt=""><span>Content Planner<small>VK Connect · пилот</small></span></a><span class="local"><i></i> Макет · вымышленные данные</span></header>
-<main>
-  <div id="test-banner" class="notice">Макет для проверки интерфейса. Все сообщества вымышлены; вход в VK и публикации не выполняются. <a href="../">Все макеты ↗</a></div>
-  <section class="intro"><p class="eyebrow">Первое подключение</p><h1>Ваш VK.<br><em>Ваши сообщества.</em></h1><p class="lead">Посмотрите будущий сценарий выбора групп, публичных страниц и событий. Для проверки макета вход в VK не требуется.</p></section>
-  <div class="layout">
-    <section class="card connection" aria-labelledby="connection-title">
-      <div class="step">01 / Подключение</div><h2 id="connection-title">Войти через VK</h2>
-      <p>Откройте пример списка и проверьте поиск, фильтры и выбор. Макет не обращается к VK и не запрашивает разрешения.</p>
-      <div id="account" class="account" hidden></div>
-      <button id="login" class="primary" type="button" >Открыть демосписок</button>
-      <button id="logout" class="quiet" type="button" hidden>Закрыть демосписок</button><button id="denied" class="quiet" type="button">Показать отказ доступа</button>
-      <p id="setup-hint" class="hint">Для просмотра достаточно нажать кнопку выше.</p>
-      <div class="divider"></div>
-      <details id="setup"><summary>Как подключить реальный VK</summary><p class="hint">Для настоящего входа подготовлен отдельный локальный модуль. В нём задаётся публичный ID собственного приложения, а пароль вводится только на странице VK. GitHub Pages показывает статические макеты; сервер входа здесь не запущен.</p></details>
-      <p class="privacy">В этом макете нет аккаунта или токена. Данные списка вымышлены и хранятся только в памяти страницы.</p>
-    </section>
-    <section id="registration" class="card guide" aria-labelledby="guide-title">
-      <div class="step">02 / Следующий этап</div><h2 id="guide-title">Подготовка рабочего входа</h2>
-      <p>Комплект ниже относится к отдельному локальному модулю. Он понадобится, когда перейдём от просмотра макетов к реальному входу.</p>
-      <dl class="fields"><div><dt>Название</dt><dd>Content Planner</dd></div><div><dt>Платформа</dt><dd>Web</dd></div><div><dt>Базовый домен</dt><dd><code>localhost</code></dd></div><div><dt>Доверенный Redirect URL</dt><dd><code>http://localhost</code></dd></div><div><dt>Схема входа</dt><dd>Публичное приложение · PKCE</dd></div></dl>
-      <p class="hint">Это настройки локального модуля на вашем компьютере. Для онлайн-версии потребуется сервер с собственным HTTPS-адресом возврата. Доступ groups проверяется отдельно.</p>
-      <div class="links"><a class="secondary" href="https://id.vk.com/about/business/" target="_blank" rel="noreferrer">Открыть кабинет VK ID ↗</a><a href="registration/vk-id-registration.md" download="vk-id-registration.md">Скачать инструкцию</a><a href="registration/icon.png" download="content-planner-icon.png">Иконка приложения · PNG</a><a href="registration/technical-privacy.md" download="technical-privacy.md">Описание обработки данных</a></div>
-      <p class="hint">Владелец, бизнес-профиль и подтверждения в VK заполняются вами по фактическим данным. Разрешения VK проверим после регистрации.</p>
-    </section>
-    <section id="catalog" class="card catalog" hidden aria-labelledby="catalog-title">
-      <div class="catalog-heading"><div><div class="step">02 / Сообщества</div><h2 id="catalog-title">Ваш список</h2></div><button id="refresh" class="secondary" type="button">Обновить</button></div>
-      <div class="filters"><label class="search-label" for="search">Найти сообщество<input id="search" type="search" placeholder="Например: керамики" autocomplete="off"></label><label for="type">Тип<select id="type"><option value="all">Все типы</option><option value="group">Группы</option><option value="page">Страницы</option><option value="event">События</option></select></label></div>
-      <label class="check"><input type="checkbox" id="managed"> Только сообщества, где я управляю</label>
-      <p id="count" class="hint" aria-live="polite"></p><div id="groups" class="groups"></div>
-      <button id="more" class="secondary" type="button" hidden>Загрузить ещё</button>
-      <aside id="selection" class="selection" hidden aria-label="Выбранное сообщество"></aside>
-      <p class="hint">В макете доступен только выбор вымышленного сообщества. Рабочий модуль покажет реальные сведения после входа VK.</p>
-    </section>
-  </div>
-  <div id="message" class="notice" role="status" aria-live="polite">Загрузка локального модуля…</div>
-  <footer>VK Connect · чтение сообществ <span>Без внешних библиотек и аналитики</span></footer>
-</main>
-</body></html>
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://id.vk.ru https://api.vk.ru https://login.vk.ru https://oauth.vk.ru; frame-src https://id.vk.ru https://id.vk.com; base-uri 'none'; form-action 'none'"><title>Content Planner · Вход VK</title><link rel="icon" href="../icon.svg"><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="auth.css"><script type="module" src="app.mjs"></script></head><body>
+<header class="bar"><a class="brand" href="../"><img src="../icon.svg" width="38" height="38" alt=""><span>Content Planner<small>Подключение VK · пилот</small></span></a><a href="../vk-demo/" class="demo-link">Посмотреть макет</a></header>
+<main><section class="intro"><p class="eyebrow">Ваше приложение · 54867924</p><h1>Подключим<br><em>ваш VK.</em></h1><p class="lead">Вход через официальный VK ID. Затем отдельно проверим, доступен ли вашему приложению список сообществ.</p></section>
+<div class="layout"><section class="card" aria-labelledby="auth-title"><div class="step">01 / Вход</div><h2 id="auth-title">Авторизация VK ID</h2><p>Пароль и код подтверждения вводятся только на странице VK. Для входа используется ваше приложение Content Planner.</p>
+<button id="prepare" class="primary" type="button">Подготовить вход VK ID</button><div id="vk-widget" class="widget" aria-label="Официальная кнопка VK ID"></div>
+<div id="account" class="account" hidden></div><button id="logout" class="quiet" type="button" hidden>Завершить сеанс на этой странице</button>
+<button id="connect-groups" class="secondary" type="button" hidden>Подключить доступ к сообществам</button>
+<p class="privacy">Токен хранится только в памяти этой страницы. Перезагрузка или закрытие удаляет сеанс. Refresh token не сохраняется; фоновой публикации пока нет.</p>
+<details><summary>Что запрашивается</summary><p class="hint">Первый вход — базовые сведения VK ID. Для чтения групп нужен отдельный доступ groups. Его наличие проверяется по ответу VK, а не по успешному входу.</p><p class="hint">Официальный SDK VK может выполнять служебные запросы и использовать свои cookies. Сайт не подключает свою аналитику. SDK зафиксирован на версии 2.6.10.</p></details></section>
+<section id="setup" class="card guide" aria-labelledby="setup-title"><div class="step">02 / Настройки</div><h2 id="setup-title">Приложение уже указано</h2><dl class="fields"><div><dt>ID приложения</dt><dd>54867924</dd></div><div><dt>Базовый домен</dt><dd><code>vichepaev22.github.io</code></dd></div><div><dt>Redirect URL</dt><dd><code>https://vichepaev22.github.io/content-planner-demo/vk-connect/</code></dd></div><div><dt>Тип</dt><dd>Публичное приложение · PKCE</dd></div></dl><p class="hint">Эти значения должны совпадать с сохранёнными настройками VK ID. Если VK требует подтверждение бизнес-профиля, завершите его в своём кабинете по фактическим данным.</p><p>После входа нажмите «Подключить доступ к сообществам». Если VK не выдаст groups или браузер не сможет прочитать API, здесь появится точная граница проверки. Вымышленные сообщества не подставляются.</p><p class="hint">Для просмотра интерфейса без аккаунта доступен <a href="../vk-demo/">отдельный макет списка</a>.</p></section>
+<section id="catalog" class="card catalog" hidden aria-labelledby="catalog-title"><div class="catalog-heading"><div><div class="step">02 / Сообщества VK</div><h2 id="catalog-title">Ваш список</h2></div><button id="refresh" class="secondary" type="button">Обновить</button></div><div class="filters"><label for="search">Найти сообщество<input id="search" type="search" placeholder="Например: пригодится" autocomplete="off"></label><label for="type">Тип<select id="type"><option value="all">Все типы</option><option value="group">Группы</option><option value="page">Страницы</option><option value="event">События</option></select></label></div><label class="check"><input id="managed" type="checkbox"> Только сообщества, где я управляю</label><p id="count" class="hint" aria-live="polite"></p><div id="groups" class="groups"></div><button id="more" class="secondary" type="button">Загрузить список</button><aside id="selection" class="selection" hidden></aside><p class="hint">Просмотр не подтверждает право публикации. Изменений в VK этот модуль не выполняет.</p></section></div>
+<div id="message" class="notice" role="status" aria-live="polite">Приложение настроено. Можно подготовить вход.</div><footer>Content Planner · проверка реального входа <span><a href="../">Все страницы</a> · <a href="../vk-demo/">Макет списка</a></span></footer></main></body></html>
