@@ -1,5 +1,5 @@
 {
-  "version": "2026-10-31-r2",
+  "version": "2026-11-04-r3",
   "mode": "ui-with-vkid",
   "files": [
     {
@@ -74,18 +74,23 @@
     },
     {
       "path": "vk-connect/index.html",
-      "bytes": 6192,
-      "sha256": "67c4e4a73ecfdb525ddcda9784b07db6010e4828ed3d7ede29d87662aef6a906"
+      "bytes": 6464,
+      "sha256": "24e4d6432651b1bbe8f077331e94d7e1a9d3b037f83863a4a8827b4aec2ed848"
     },
     {
       "path": "vk-connect/app.mjs",
-      "bytes": 7141,
-      "sha256": "c0d3d9a0db38e09600336989b3cbd961c313696bbd059a89d9122c87ab46540b"
+      "bytes": 9776,
+      "sha256": "d0daad802043039e5ac7b65e70222648d865c5c62c44bfa222c71cf3264b4838"
     },
     {
       "path": "vk-connect/session.mjs",
-      "bytes": 11669,
-      "sha256": "662f801e31f64150c27074af174c4ddca007a5a2a974a5e5c468c98219c140ac"
+      "bytes": 12380,
+      "sha256": "ba0efc2441c2c64abe7862847e8015dd2d394297480bb080a45ca5626c78b8b8"
+    },
+    {
+      "path": "vk-connect/redirect.mjs",
+      "bytes": 3714,
+      "sha256": "3301e928f82514223b63b5b31ad9412d62bc8b23e30357181aba91b50c915528"
     },
     {
       "path": "vk-connect/auth.css",

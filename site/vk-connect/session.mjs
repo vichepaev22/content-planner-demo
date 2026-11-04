@@ -66,6 +66,13 @@ export function createBrowserSession({ sdk, cryptoImpl = globalThis.crypto, fetc
       emit();
       return { app: APP_ID, redirectUrl: REDIRECT_URL, state: attempt.state, codeVerifier: attempt.verifier, scope };
     },
+    restore(proof) {
+      if (proof?.app !== APP_ID || proof.redirectUrl !== REDIRECT_URL || !['', 'groups'].includes(proof.scope) ||
+          !/^[A-Za-z0-9_-]{43}$/.test(proof.state) || !/^[A-Za-z0-9_-]{43}$/.test(proof.codeVerifier) ||
+          !Number.isFinite(proof.expiresAt) || proof.expiresAt <= now() || proof.expiresAt > now() + 600000) problem('STATE', 'Попытка входа истекла. Начните заново.');
+      clear(); attempt = { state: proof.state, verifier: proof.codeVerifier, expiresAt: proof.expiresAt, epoch: revision };
+      emit(); return { app: APP_ID, redirectUrl: REDIRECT_URL, state: attempt.state, codeVerifier: attempt.verifier, scope: proof.scope };
+    },
     async authorize(payload) {
       const pending = attempt; attempt = null;
       if (!pending || pending.expiresAt <= now() || payload?.state !== pending.state ||

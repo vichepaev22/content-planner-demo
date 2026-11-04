@@ -1,7 +1,11 @@
 import { createBrowserSession, LoginError, REDIRECT_URL } from './session.mjs';
+import { createProofStore, buildRedirectUrl, parseRedirectPayload } from './redirect.mjs';
 const $ = id => document.getElementById(id);
 const types = { group: 'Группа', page: 'Страница', event: 'Событие' };
-let sdk, controller, widget, state, preparing = false, sdkPromise;
+let sdk, controller, widget, state, preparing = false, sdkPromise, pendingScope = '';
+let callbackPayload = null, callbackError = null;
+try { callbackPayload = parseRedirectPayload(location.href); } catch (error) { callbackError = error; }
+if (location.search || location.hash) history.replaceState(null, '', location.pathname);
 function node(tag, text, cls) { const el = document.createElement(tag); if (text != null) el.textContent = text; if (cls) el.className = cls; return el; }
 function message(text, error = false) { $('message').textContent = text; $('message').classList.toggle('error', error); }
 function closeWidget() { widget?.close(); widget = null; $('vk-widget').replaceChildren(); }
@@ -12,6 +16,8 @@ function render(next) {
   $('logout').hidden = !state.authenticated;
   $('connect-groups').hidden = !state.authenticated || state.hasGroups;
   $('prepare').hidden = state.authenticated; $('prepare').disabled = preparing || state.loading;
+  $('redirect-login').hidden = state.authenticated; $('redirect-login').disabled = preparing || state.loading;
+  $('redirect-login').textContent = pendingScope ? 'Запросить groups в этой вкладке' : 'Войти в этой вкладке';
   $('catalog').hidden = !state.authenticated || !state.hasGroups; $('setup').hidden = state.authenticated && state.hasGroups;
   for (const id of ['refresh', 'more', 'connect-groups']) $(id).disabled = preparing || state.loading;
   $('groups').replaceChildren(); $('selection').replaceChildren(); $('selection').hidden = !state.selected;
@@ -43,7 +49,7 @@ async function loadSdk() {
 async function prepare(scope = '') {
   if (preparing) return;
   if (location.origin + location.pathname !== REDIRECT_URL) { message('Реальный вход включён только на зарегистрированном HTTPS-адресе GitHub Pages. Откройте публичную страницу.', true); return; }
-  preparing = true; $('prepare').disabled = true; message('Подготавливаем официальный виджет VK…');
+  pendingScope = scope; preparing = true; $('prepare').disabled = true; $('redirect-login').disabled = true; message('Подготавливаем официальный виджет VK…');
   try {
     sdk = await loadSdk(); closeWidget();
     controller ??= createBrowserSession({ sdk, onChange: render });
@@ -57,20 +63,43 @@ async function prepare(scope = '') {
   } catch { message('Не удалось подготовить SDK VK. Обновите страницу и проверьте настройки приложения.', true); }
   finally { preparing = false; if (state) render({ ...state, note: '' }); else $('prepare').disabled = false; }
 }
+async function startRedirect() {
+  if (preparing) return;
+  if (location.origin + location.pathname !== REDIRECT_URL) { message('Откройте зарегистрированную HTTPS-страницу входа.', true); return; }
+  preparing = true; $('redirect-login').disabled = true;
+  try {
+    sdk = await loadSdk(); closeWidget(); controller ??= createBrowserSession({ sdk, onChange: render });
+    const config = controller.prepare(pendingScope);
+    const url = await buildRedirectUrl(config); createProofStore().save(config);
+    message('Открываем официальную страницу VK…'); location.assign(url);
+  } catch (error) { message(error instanceof LoginError ? error.message : 'Не удалось подготовить вход в этой вкладке.', true); }
+  finally { preparing = false; if (state) render({ ...state, note: '' }); else $('redirect-login').disabled = false; }
+}
+async function finishRedirect(payload) {
+  preparing = true; $('prepare').disabled = true; $('redirect-login').disabled = true;
+  try {
+    const proof = createProofStore().take();
+    if (payload.state !== proof.state) throw new LoginError('STATE', 'VK вернул ответ на другую попытку входа. Начните заново.');
+    sdk = await loadSdk(); controller = createBrowserSession({ sdk, onChange: render });
+    const config = controller.restore(proof);
+    sdk.Config.init({ ...config, responseMode: sdk.ConfigResponseMode.Callback, source: sdk.ConfigSource.LOWCODE });
+    await controller.authorize(payload);
+  } catch (error) { message(error instanceof LoginError ? error.message : 'Не удалось завершить вход. Подготовьте новую попытку.', true); }
+  finally { preparing = false; if (state) render({ ...state, note: '' }); else { $('prepare').disabled = false; $('redirect-login').disabled = false; } }
+}
 async function action(work) {
   try { await work(); }
   catch (error) { message(error instanceof LoginError ? error.message : 'Действие не выполнено. Начните вход заново.', true); }
 }
 $('prepare').addEventListener('click', () => prepare());
+$('redirect-login').addEventListener('click', startRedirect);
 $('connect-groups').addEventListener('click', () => prepare('groups'));
-$('logout').addEventListener('click', () => { closeWidget(); controller.logout(); });
+$('logout').addEventListener('click', () => { closeWidget(); createProofStore().clear(); controller.logout(); });
 $('refresh').addEventListener('click', () => action(() => controller.loadGroups(true)));
 $('more').addEventListener('click', () => action(() => controller.loadGroups()));
 for (const id of ['search', 'type', 'managed']) $(id).addEventListener('input', () => { if (state) render({ ...state, note: '' }); });
 setInterval(() => controller?.expire(), 15000);
 window.addEventListener('pagehide', () => { closeWidget(); controller?.clear(); });
 window.addEventListener('pageshow', event => { if (event.persisted) window.location.reload(); });
-if (location.search || location.hash) {
-  history.replaceState(null, '', location.pathname);
-  message('Открыт ответ на предыдущую попытку входа. Подготовьте новый вход на этой странице; ссылки с кодами повторно не используются.', true);
-}
+if (callbackError) { try { createProofStore().clear(); } catch {} message(callbackError instanceof LoginError ? callbackError.message : 'Не удалось проверить ответ VK. Начните заново.', true); }
+else if (callbackPayload) await finishRedirect(callbackPayload);
