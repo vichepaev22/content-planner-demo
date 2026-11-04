@@ -17,7 +17,8 @@ function render(next) {
   $('connect-groups').hidden = !state.authenticated || state.hasGroups;
   $('prepare').hidden = state.authenticated; $('prepare').disabled = preparing || state.loading;
   $('redirect-login').hidden = state.authenticated; $('redirect-login').disabled = preparing || state.loading;
-  $('redirect-login').textContent = pendingScope ? 'Запросить groups в этой вкладке' : 'Войти в этой вкладке';
+  $('redirect-login').textContent = pendingScope ? 'Подключить сообщества VK' : 'Войти через VK ID';
+  $('alternate-login').hidden = state.authenticated;
   $('catalog').hidden = !state.authenticated || !state.hasGroups; $('setup').hidden = state.authenticated && state.hasGroups;
   for (const id of ['refresh', 'more', 'connect-groups']) $(id).disabled = preparing || state.loading;
   $('groups').replaceChildren(); $('selection').replaceChildren(); $('selection').hidden = !state.selected;
@@ -61,19 +62,22 @@ async function prepare(scope = '') {
       .on(sdk.OAuthListInternalEvents.LOGIN_SUCCESS, payload => action(async () => { await controller.authorize(payload); closeWidget(); }));
     message(scope ? 'Кнопка VK ниже запросит доступ к сообществам. Подтвердите разрешения на странице VK.' : 'Нажмите официальную кнопку VK ниже. Разрешения и вход подтверждаются на стороне VK.');
   } catch { message('Не удалось подготовить SDK VK. Обновите страницу и проверьте настройки приложения.', true); }
-  finally { preparing = false; if (state) render({ ...state, note: '' }); else $('prepare').disabled = false; }
+  finally { preparing = false; if (state) render({ ...state, note: '' }); else { $('prepare').disabled = false; $('redirect-login').disabled = false; } }
 }
-async function startRedirect() {
+async function startRedirect(scope = pendingScope) {
   if (preparing) return;
   if (location.origin + location.pathname !== REDIRECT_URL) { message('Откройте зарегистрированную HTTPS-страницу входа.', true); return; }
-  preparing = true; $('redirect-login').disabled = true;
+  preparing = true;
+  for (const id of ['redirect-login', 'prepare', 'connect-groups']) $(id).disabled = true;
+  message('Открываем защищённую страницу VK…');
   try {
-    sdk = await loadSdk(); closeWidget(); controller ??= createBrowserSession({ sdk, onChange: render });
-    const config = controller.prepare(pendingScope);
+    closeWidget();
+    // Building a PKCE redirect needs only Web Crypto. The SDK is loaded after VK returns.
+    const config = createBrowserSession({ sdk: {} }).prepare(scope);
     const url = await buildRedirectUrl(config); createProofStore().save(config);
     message('Открываем официальную страницу VK…'); location.assign(url);
   } catch (error) { message(error instanceof LoginError ? error.message : 'Не удалось подготовить вход в этой вкладке.', true); }
-  finally { preparing = false; if (state) render({ ...state, note: '' }); else $('redirect-login').disabled = false; }
+  finally { preparing = false; if (state) render({ ...state, note: '' }); else { $('redirect-login').disabled = false; $('prepare').disabled = false; } }
 }
 async function finishRedirect(payload) {
   preparing = true; $('prepare').disabled = true; $('redirect-login').disabled = true;
@@ -92,8 +96,8 @@ async function action(work) {
   catch (error) { message(error instanceof LoginError ? error.message : 'Действие не выполнено. Начните вход заново.', true); }
 }
 $('prepare').addEventListener('click', () => prepare());
-$('redirect-login').addEventListener('click', startRedirect);
-$('connect-groups').addEventListener('click', () => prepare('groups'));
+$('redirect-login').addEventListener('click', () => startRedirect());
+$('connect-groups').addEventListener('click', () => startRedirect('groups'));
 $('logout').addEventListener('click', () => { closeWidget(); createProofStore().clear(); controller.logout(); });
 $('refresh').addEventListener('click', () => action(() => controller.loadGroups(true)));
 $('more').addEventListener('click', () => action(() => controller.loadGroups()));
