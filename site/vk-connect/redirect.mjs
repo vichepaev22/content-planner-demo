@@ -3,7 +3,7 @@ const KEY = 'content-planner:vkid:pending-v1';
 const bad = () => { throw new LoginError('REDIRECT', 'Попытка входа истекла или не подтверждена. Начните вход заново.'); };
 export function validateProof(value, now = Date.now()) {
   if (!value || value.app !== APP_ID || value.redirectUrl !== REDIRECT_URL ||
-      !['', 'groups'].includes(value.scope) || !/^[A-Za-z0-9_-]{43}$/.test(value.state) ||
+      !['', 'groups', 'groups wall'].includes(value.scope) || !/^[A-Za-z0-9_-]{43}$/.test(value.state) ||
       !/^[A-Za-z0-9_-]{43}$/.test(value.codeVerifier) || !Number.isFinite(value.expiresAt) ||
       value.expiresAt <= now || value.expiresAt > now + 600000) bad();
   return { app: APP_ID, redirectUrl: REDIRECT_URL, state: value.state, codeVerifier: value.codeVerifier, scope: value.scope, expiresAt: value.expiresAt };
@@ -31,7 +31,7 @@ export async function buildRedirectUrl(config, cryptoImpl = globalThis.crypto) {
   const url = new URL('https://id.vk.ru/authorize');
   for (const [key, value] of Object.entries({ client_id: String(APP_ID), response_type: 'code', redirect_uri: REDIRECT_URL,
     state: config.state, code_challenge: challenge, code_challenge_method: 'S256',
-    scope: config.scope === 'groups' ? 'vkid.personal_info groups' : 'vkid.personal_info' })) url.searchParams.set(key, value);
+    scope: 'vkid.personal_info' + (config.scope ? ' ' + config.scope : '') })) url.searchParams.set(key, value);
   return url.href;
 }
 export function parseRedirectPayload(href) {

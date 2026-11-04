@@ -1,5 +1,5 @@
 {
-  "version": "2026-11-05-r4",
+  "version": "2026-11-05-r5",
   "mode": "ui-with-vkid",
   "files": [
     {
@@ -74,28 +74,38 @@
     },
     {
       "path": "vk-connect/index.html",
-      "bytes": 6558,
-      "sha256": "09f546803ca3c971b86414fc644d16a9234982ed98591bb651a37bbf91a20c7d"
+      "bytes": 8518,
+      "sha256": "2d32e6de1f0581d21d2d668f66c2968a557315cb6f0bd54793d9184dd2a10fb8"
+    },
+    {
+      "path": "vk-connect/permissions.md",
+      "bytes": 4453,
+      "sha256": "41b4d0ec6963601152a2ad8c6fc6f89a83bd2811a576f2bc8c571b87d448b1d3"
     },
     {
       "path": "vk-connect/app.mjs",
-      "bytes": 10073,
-      "sha256": "66e8b423ecee5715ba7b7c4ed98f44dad34773127fa6972ff187af3f9b6c9663"
+      "bytes": 14446,
+      "sha256": "ee9da0ab0b51547d7eab6ccfba6a869d664c4cc942e2545aebaa04d70b4f6298"
     },
     {
       "path": "vk-connect/session.mjs",
-      "bytes": 12380,
-      "sha256": "ba0efc2441c2c64abe7862847e8015dd2d394297480bb080a45ca5626c78b8b8"
+      "bytes": 13339,
+      "sha256": "b5b287f436e1dad21b183f5988c1e14a008cb1c8ae18398ec2ac93950374da5d"
+    },
+    {
+      "path": "vk-connect/vk-publisher.mjs",
+      "bytes": 6944,
+      "sha256": "09122295d029e0e56273265920324ffce314146d81363736961cd3f9ecae6c38"
     },
     {
       "path": "vk-connect/redirect.mjs",
-      "bytes": 3714,
-      "sha256": "3301e928f82514223b63b5b31ad9412d62bc8b23e30357181aba91b50c915528"
+      "bytes": 3765,
+      "sha256": "a3bc63fe43d29c9de52e567e12d5665d4f4c60ec84b00713fc13a95ae025a094"
     },
     {
       "path": "vk-connect/auth.css",
-      "bytes": 445,
-      "sha256": "824d56fbd66dac18485c602accbde06b3fdaf7518d9b25d83a868fe0479f8c9c"
+      "bytes": 745,
+      "sha256": "af6a7a15e9a70dcad92ee65a37dd56903e212608abcd9133582b4f34a13844a0"
     },
     {
       "path": "vk-connect/style.css",

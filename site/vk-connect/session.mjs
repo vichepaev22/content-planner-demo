@@ -1,3 +1,4 @@
+import { createTextPublisher } from './vk-publisher.mjs';
 export const APP_ID = 54867924;
 export const REDIRECT_URL = 'https://vichepaev22.github.io/content-planner-demo/vk-connect/';
 export class LoginError extends Error {
@@ -10,7 +11,7 @@ const random = cryptoImpl => {
 };
 function scopes(value) {
   if (typeof value !== 'string') return [];
-  if (/^\d+$/.test(value)) return (Number(value) & 262144) ? ['groups'] : [];
+  if (/^\d+$/.test(value)) return [['groups', 262144], ['wall', 8192]].filter(([, bit]) => (Number(value) & bit) !== 0).map(([name]) => name);
   return [...new Set(value.split(/[\s,]+/).filter(s => /^[a-z_][a-z_.]{0,60}$/.test(s)))];
 }
 function community(value) {
@@ -47,10 +48,11 @@ export function createBrowserSession({ sdk, cryptoImpl = globalThis.crypto, fetc
   let attempt = null, auth = null, groups = [], total = null, complete = false, selected = null;
   let revision = 0, loading = false, note = '';
   const snapshot = () => ({ authenticated: Boolean(auth), userId: auth?.userId ?? null,
-    expiresAt: auth?.expiresAt ?? null, scopes: [...(auth?.scopes ?? [])], hasGroups: auth?.scopes.includes('groups') ?? false,
+    expiresAt: auth?.expiresAt ?? null, scopes: [...(auth?.scopes ?? [])], hasGroups: auth?.scopes.includes('groups') ?? false, hasWall: auth?.scopes.includes('wall') ?? false, catalogReadable: total !== null, publication: publisher.snapshot(),
     groups: groups.map(g => ({ ...g })), total, complete, selected: selected ? { ...selected } : null, loading, note });
   const emit = () => onChange(snapshot());
-  function clear(message = '') { revision++; attempt = null; auth = null; groups = []; total = null; complete = false; selected = null; loading = false; note = message; }
+  const publisher = createTextPublisher({ connection: () => { const c = requireAuth(); return { token: c.token, userId: c.userId, scopes: c.scopes, selected }; }, fetchImpl, cryptoImpl, now, onChange: emit });
+  function clear(message = '') { revision++; attempt = null; auth = null; groups = []; total = null; complete = false; selected = null; loading = false; note = message; publisher.reset(); }
   function expire() {
     if (auth && auth.expiresAt <= now()) { clear('Срок сеанса истёк. Войдите через VK заново.'); emit(); }
   }
@@ -59,7 +61,7 @@ export function createBrowserSession({ sdk, cryptoImpl = globalThis.crypto, fetc
   return {
     snapshot, expire,
     prepare(scope = '') {
-      if (!['', 'groups'].includes(scope)) problem('SCOPE', 'Неизвестный набор разрешений.');
+      if (!['', 'groups', 'groups wall'].includes(scope)) problem('SCOPE', 'Неизвестный набор разрешений.');
       clear();
       attempt = { state: random(cryptoImpl), verifier: random(cryptoImpl), expiresAt: now() + 600000, epoch: revision };
       note = scope ? 'Вход запросит доступ groups. VK покажет разрешения перед подтверждением.' : 'Готов базовый вход VK ID. Доступ к сообществам запрашивается отдельно.';
@@ -67,7 +69,7 @@ export function createBrowserSession({ sdk, cryptoImpl = globalThis.crypto, fetc
       return { app: APP_ID, redirectUrl: REDIRECT_URL, state: attempt.state, codeVerifier: attempt.verifier, scope };
     },
     restore(proof) {
-      if (proof?.app !== APP_ID || proof.redirectUrl !== REDIRECT_URL || !['', 'groups'].includes(proof.scope) ||
+      if (proof?.app !== APP_ID || proof.redirectUrl !== REDIRECT_URL || !['', 'groups', 'groups wall'].includes(proof.scope) ||
           !/^[A-Za-z0-9_-]{43}$/.test(proof.state) || !/^[A-Za-z0-9_-]{43}$/.test(proof.codeVerifier) ||
           !Number.isFinite(proof.expiresAt) || proof.expiresAt <= now() || proof.expiresAt > now() + 600000) problem('STATE', 'Попытка входа истекла. Начните заново.');
       clear(); attempt = { state: proof.state, verifier: proof.codeVerifier, expiresAt: proof.expiresAt, epoch: revision };
@@ -101,9 +103,9 @@ export function createBrowserSession({ sdk, cryptoImpl = globalThis.crypto, fetc
       } finally { if (pending.epoch === revision || !auth) { loading = false; emit(); } }
       loading = false; emit(); return snapshot();
     },
-    async loadGroups(reset = false) {
+    async loadGroups(reset = false, explicitProbe = false) {
       const current = requireAuth(), epoch = revision;
-      if (!current.scopes.includes('groups')) problem('GROUPS_SCOPE', 'Вход выполнен, но VK не предоставил разрешение groups. Подключите доступ к сообществам отдельно.');
+      if (!current.scopes.includes('groups') && !explicitProbe) problem('GROUPS_SCOPE', 'Вход выполнен, но VK не предоставил разрешение groups. Подключите доступ к сообществам отдельно.');
       if (loading) problem('BUSY', 'Дождитесь текущего запроса.');
       if (reset) { groups = []; total = null; complete = false; selected = null; }
       loading = true; emit();
@@ -138,10 +140,14 @@ export function createBrowserSession({ sdk, cryptoImpl = globalThis.crypto, fetc
       } finally { if (epoch === revision) loading = false; emit(); }
       return snapshot();
     },
+    async probeGroups(reset = false) { return this.loadGroups(reset, true); },
+    preparePost(draft) { return publisher.prepare(draft); },
+    async submitPost(id) { return publisher.submit(id); },
+    discardPost() { publisher.discard(); },
     select(id) {
       requireAuth(); const found = groups.find(g => g.id === id);
       if (!found) problem('SELECTION', 'Выберите сообщество из полученного списка.');
-      selected = found; note = 'Сообщество выбрано для просмотра. Изменений в VK не выполнено.'; emit();
+      selected = found; publisher.discard(); note = 'Сообщество выбрано для просмотра. Изменений в VK не выполнено.'; emit();
     },
     logout() { clear('Сеанс на этой странице завершён. Доступ приложения можно отозвать в настройках VK.'); emit(); },
     clear() { clear(); emit(); }
