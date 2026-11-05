@@ -122,10 +122,12 @@ export function createBrowserSession({ sdk, cryptoImpl = globalThis.crypto, fetc
           const data = await boundedJson(response); check(epoch);
           if (data?.error) {
             const vkCode = Number(data.error.error_code);
+            const suffix = Number.isSafeInteger(vkCode) && vkCode > 0 && vkCode <= 1000000 ? ` (код VK ${vkCode})` : '';
+            if (vkCode === 260) problem('VK_PRIVACY', 'VK отказал в чтении списка из-за настроек приватности пользователя.' + suffix);
             if (vkCode === 5) { clear('VK завершил сеанс. Войдите заново.'); problem('EXPIRED', 'VK завершил сеанс. Войдите заново.'); }
-            if ([7, 15, 27, 28].includes(vkCode)) problem('VK_ACCESS', 'VK не разрешил чтение сообществ. Проверьте доступ groups в настройках приложения; он может требовать согласования с VK.');
-            if ([6, 9, 29].includes(vkCode)) problem('VK_LIMIT', 'VK ограничил частоту запросов. Повторите позже.');
-            problem('VK_API', 'VK не предоставил список сообществ. Проверьте доступы приложения.');
+            if ([7, 15, 27, 28].includes(vkCode)) problem('VK_ACCESS', 'VK не разрешил чтение сообществ. Проверьте доступ groups в настройках приложения; он может требовать согласования с VK.' + suffix);
+            if ([6, 9, 29].includes(vkCode)) problem('VK_LIMIT', 'VK ограничил частоту запросов. Повторите позже.' + suffix);
+            problem('VK_API', 'VK не предоставил список сообществ.' + suffix + ' Проверьте доступы приложения и условия метода groups.get.');
           }
           const result = data?.response;
           if (!result || !Array.isArray(result.items) || result.items.length > 1000 || !Number.isSafeInteger(result.count) || result.count < 0) problem('FORMAT', 'VK вернул неполный список.');

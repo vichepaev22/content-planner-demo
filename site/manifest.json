@@ -1,5 +1,5 @@
 {
-  "version": "2026-11-05-r6",
+  "version": "2026-11-05-r7",
   "mode": "ui-with-vkid",
   "files": [
     {
@@ -74,18 +74,18 @@
     },
     {
       "path": "vk-connect/index.html",
-      "bytes": 8824,
-      "sha256": "5040d3fca7717fd9ca546d8613b36b2898cbff662ad72f52bb3f4b18878a3261"
+      "bytes": 9059,
+      "sha256": "5c85740265b0f51959815babf05aa153b809d35fce9a9b9a41c611e500a1fbf0"
     },
     {
       "path": "vk-connect/permissions.md",
-      "bytes": 5643,
-      "sha256": "cf0fff2fe80bc98bf70d45168f21cd98a16c1d08f420be504316f0b57579a1de"
+      "bytes": 7450,
+      "sha256": "a86fe6e2eaf944d79b0ecb7729b37d67e5207a2dd52a1127d7759f596e7275ac"
     },
     {
       "path": "vk-connect/app.mjs",
-      "bytes": 15367,
-      "sha256": "9d623ed808028b7a84093c0b2c8f20a9051f071ef00a1dbceb95810e31cf573f"
+      "bytes": 16523,
+      "sha256": "40728dc659bed633318a6c200c76d50ef7a2d9ca7b63c588e184fb49fae980f9"
     },
     {
       "path": "vk-connect/vk-local-relay.mjs",
@@ -99,8 +99,8 @@
     },
     {
       "path": "vk-connect/session.mjs",
-      "bytes": 13339,
-      "sha256": "b5b287f436e1dad21b183f5988c1e14a008cb1c8ae18398ec2ac93950374da5d"
+      "bytes": 13572,
+      "sha256": "f7439373ec057a4e0adef58ad8f2b75912732e97f16e6b2ae4e2a73d33eb08a2"
     },
     {
       "path": "vk-connect/vk-publisher.mjs",

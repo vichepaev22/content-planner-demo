@@ -20,6 +20,11 @@ function message(text, error = false) { $('message').textContent = text; $('mess
 function closeWidget() { widget?.close(); widget = null; $('vk-widget').replaceChildren(); }
 function render(next) {
   state = next;
+  $('transport-mode').textContent = isLocal ? 'Локальный режим: запросы API выполняет процесс на вашем компьютере. GitHub Pages используется для возврата из VK.' : 'Браузерный режим: запросы API выполняются в этой странице. Для локального сервиса откройте localhost:4319.';
+  $('api-permissions').hidden = !state.authenticated || ((state.hasGroups || state.catalogReadable) && state.hasWall);
+  const missing = [!state.hasGroups && !state.catalogReadable ? 'доступ к сообществам не подтверждён' : null, !state.hasWall ? 'право wall не выдано' : null].filter(Boolean);
+  $('api-permissions-text').textContent = `VK подтвердил вход; ${missing.join('; ')}. Кнопки ниже только запрашивают права. Повторное «Разрешить» само по себе не добавляет доступ: сначала нужно настроить или согласовать его для приложения в VK.`;
+
   $('account').hidden = !state.authenticated;
   $('account').textContent = state.authenticated ? `Вход подтверждён · VK ID ${state.userId}. Список сообществ: ${state.catalogReadable ? 'чтение проверено' : state.hasGroups ? 'доступ выдан, чтение ещё не проверено' : 'проверка нужна'}. Публикация: ${state.hasWall ? 'wall получен' : 'wall не предоставлен'}.` : '';
   $('logout').hidden = !state.authenticated;
@@ -27,7 +32,7 @@ function render(next) {
   $('connect-publish').hidden = !state.authenticated || state.hasWall;
   $('prepare').hidden = state.authenticated; $('prepare').disabled = preparing || state.loading;
   $('redirect-login').hidden = state.authenticated; $('redirect-login').disabled = preparing || state.loading;
-  $('redirect-login').textContent = pendingScope ? 'Подключить сообщества VK' : 'Войти через VK ID';
+  $('redirect-login').textContent = pendingScope ? 'Запросить сообщества VK' : 'Войти через VK ID';
   $('alternate-login').hidden = isLocal || state.authenticated;
   $('catalog').hidden = !state.authenticated; $('setup').hidden = state.authenticated;
   for (const id of ['refresh', 'more', 'connect-groups', 'connect-publish']) $(id).disabled = preparing || state.loading;

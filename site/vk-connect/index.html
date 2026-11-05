@@ -3,9 +3,10 @@
 <main><section class="intro"><p class="eyebrow">Ваше приложение · 54867924</p><h1>Подключим<br><em>ваш VK.</em></h1><p class="lead">Вход через официальный VK ID. Затем отдельно проверим, доступен ли вашему приложению список сообществ.</p></section>
 <div class="layout"><section class="card" aria-labelledby="auth-title"><div class="step">01 / Вход</div><h2 id="auth-title">Авторизация VK ID</h2><p>Пароль и код подтверждения вводятся только на странице VK. Для входа используется ваше приложение Content Planner.</p>
 <button id="redirect-login" class="primary" type="button">Войти через VK ID</button><details id="alternate-login"><summary>Другой способ входа</summary><button id="prepare" class="secondary" type="button">Войти в новом окне</button><div id="vk-widget" class="widget" aria-label="Официальная кнопка VK ID"></div></details>
-<div id="account" class="account" hidden></div><button id="logout" class="quiet" type="button" hidden>Завершить сеанс на этой странице</button>
-<button id="connect-publish" class="secondary" type="button" hidden>Подключить разрешение публикации</button>
-<button id="connect-groups" class="secondary" type="button" hidden>Подключить доступ к сообществам</button>
+<p id="transport-mode" class="hint"></p><div id="account" class="account" hidden></div><button id="logout" class="quiet" type="button" hidden>Завершить сеанс на этой странице</button>
+<button id="connect-publish" class="secondary" type="button" hidden>Запросить у VK право публикации</button>
+<button id="connect-groups" class="secondary" type="button" hidden>Запросить у VK доступ к сообществам</button>
+<aside id="api-permissions" class="notice" hidden><p id="api-permissions-text"></p><a href="permissions.md">Как получить доступ к API и что написать в VK</a></aside>
 <p class="privacy">Токен хранится только в памяти этой страницы. Перезагрузка или закрытие удаляет сеанс. Refresh token не сохраняется. Для входа в этой вкладке временно сохраняются только одноразовые PKCE/state на 10 минут; после возврата они удаляются.</p>
 <p class="hint">Если браузер не получает список VK, запустите свой локальный коннектор и <a href="http://localhost:4319/">откройте Content Planner на компьютере</a>. Токен останется в локальном процессе.</p>
 <details><summary>Что запрашивается</summary><p class="hint">Вход запрашивает базовые сведения VK ID и доступ к вашим сообществам. Право wall для отправки записей подключается отдельно. Фактические возможности проверяются по ответу VK.</p><p class="hint">Официальный SDK VK может выполнять служебные запросы и использовать свои cookies. Сайт не подключает свою аналитику. SDK зафиксирован на версии 2.6.10.</p></details></section>
