@@ -1,11 +1,19 @@
+import { localRelay } from './vk-local-relay.mjs';
+import { createLocalSession } from './vk-local-client.mjs';
 import { PublishError } from './vk-publisher.mjs';
 import { createBrowserSession, LoginError, REDIRECT_URL } from './session.mjs';
 import { createProofStore, buildRedirectUrl, parseRedirectPayload } from './redirect.mjs';
+const isLocal = location.origin === 'http://localhost:4319' && Boolean(document.querySelector('meta[name=content-planner-local]'));
+let localNavigation = false;
 const $ = id => document.getElementById(id);
 const types = { group: 'Группа', page: 'Страница', event: 'Событие' };
 let sdk, controller, widget, state, preparing = false, sdkPromise, pendingScope = '';
 let callbackPayload = null, callbackError = null;
-try { callbackPayload = parseRedirectPayload(location.href); } catch (error) { callbackError = error; }
+try {
+  const relay = isLocal ? null : localRelay(location.href);
+  if (relay) { createProofStore().clear(); history.replaceState(null, '', location.pathname); localNavigation = true; location.replace(relay.url); }
+  else callbackPayload = parseRedirectPayload(location.href);
+} catch (error) { callbackError = error; }
 if (location.search || location.hash) history.replaceState(null, '', location.pathname);
 function node(tag, text, cls) { const el = document.createElement(tag); if (text != null) el.textContent = text; if (cls) el.className = cls; return el; }
 function message(text, error = false) { $('message').textContent = text; $('message').classList.toggle('error', error); }
@@ -20,7 +28,7 @@ function render(next) {
   $('prepare').hidden = state.authenticated; $('prepare').disabled = preparing || state.loading;
   $('redirect-login').hidden = state.authenticated; $('redirect-login').disabled = preparing || state.loading;
   $('redirect-login').textContent = pendingScope ? 'Подключить сообщества VK' : 'Войти через VK ID';
-  $('alternate-login').hidden = state.authenticated;
+  $('alternate-login').hidden = isLocal || state.authenticated;
   $('catalog').hidden = !state.authenticated; $('setup').hidden = state.authenticated;
   for (const id of ['refresh', 'more', 'connect-groups', 'connect-publish']) $(id).disabled = preparing || state.loading;
   $('groups').replaceChildren(); $('selection').replaceChildren(); $('selection').hidden = !state.selected;
@@ -97,6 +105,14 @@ async function prepare(scope = '') {
   finally { preparing = false; if (state) render({ ...state, note: '' }); else { $('prepare').disabled = false; $('redirect-login').disabled = false; } }
 }
 async function startRedirect(scope = pendingScope) {
+  if (isLocal) {
+    if (preparing) return;
+    preparing = true;
+    try { const result = await controller.begin(scope); location.assign(result.url); }
+    catch (error) { message(error.message, true); }
+    finally { preparing = false; }
+    return;
+  }
   if (preparing) return;
   if (location.origin + location.pathname !== REDIRECT_URL) { message('Откройте зарегистрированную HTTPS-страницу входа.', true); return; }
   preparing = true;
@@ -131,17 +147,21 @@ $('prepare').addEventListener('click', () => prepare());
 $('redirect-login').addEventListener('click', () => startRedirect('groups'));
 $('connect-groups').addEventListener('click', () => startRedirect('groups'));
 $('connect-publish').addEventListener('click', () => startRedirect('groups wall'));
-$('logout').addEventListener('click', () => { closeWidget(); createProofStore().clear(); controller.logout(); });
+$('logout').addEventListener('click', () => action(async () => { closeWidget(); createProofStore().clear(); await controller.logout(); }));
 $('refresh').addEventListener('click', () => action(() => state.hasGroups ? controller.loadGroups(true) : controller.probeGroups(true)));
 $('more').addEventListener('click', () => action(() => state.hasGroups ? controller.loadGroups() : controller.probeGroups()));
 for (const id of ['search', 'type', 'managed']) $(id).addEventListener('input', () => { if (state) render({ ...state, note: '' }); });
 setInterval(() => controller?.expire(), 15000);
 window.addEventListener('pagehide', () => { closeWidget(); controller?.clear(); });
 window.addEventListener('pageshow', event => { if (event.persisted) window.location.reload(); });
+if (isLocal) {
+  controller = createLocalSession({ onChange: render });
+  await action(async () => { await controller.initialize(); if (!state.authenticated) message('Локальный сервис готов. Войдите через VK ID.'); });
+}
 if (callbackError) { try { createProofStore().clear(); } catch {} message(callbackError instanceof LoginError ? callbackError.message : 'Не удалось проверить ответ VK. Начните заново.', true); }
-else if (callbackPayload) await finishRedirect(callbackPayload);
+else if (callbackPayload && !localNavigation) await finishRedirect(callbackPayload);
 
 $('post-form').addEventListener('submit', event => { event.preventDefault(); action(() => controller.preparePost({ text: $('post-text').value, mode: $('post-mode').value, publishAtMs: $('post-mode').value === 'scheduled' ? new Date($('post-time').value).getTime() : null })); });
 $('post-send').addEventListener('click', () => action(async () => { const id = state.publication.review?.id; if (!id) throw new PublishError('REVIEW', 'Сначала проверьте предпросмотр.'); const r = await controller.submitPost(id); message(r.status === 'scheduled' ? 'VK принял запись в отложенные. Это ещё не подтверждение её выхода по времени.' : 'VK подтвердил публикацию.'); }));
-for (const id of ['post-text', 'post-mode', 'post-time']) $(id).addEventListener('input', () => { updatePostMode(); if (controller) controller.discardPost(); });
+for (const id of ['post-text', 'post-mode', 'post-time']) $(id).addEventListener('input', () => { updatePostMode(); if (controller) action(() => controller.discardPost()); });
 updatePostMode();
