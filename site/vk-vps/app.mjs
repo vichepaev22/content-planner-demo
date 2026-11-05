@@ -6,8 +6,8 @@ const notify = (text, error = false) => { $('notice').textContent = text; $('not
 function node(tag, text, cls) { const e = document.createElement(tag); if (text != null) e.textContent = text; if (cls) e.className = cls; return e; }
 function endpoint(value) {
   const u = new URL(value);
-  if (u.origin !== value.replace(/\/$/, '') || u.username || u.password || (u.protocol !== 'https:' && !(location.hostname === 'localhost' && u.origin === 'http://localhost:4320'))) throw new Error('Нужен только HTTPS-адрес вашего API без пути, логина и параметров.');
-  return u.origin;
+  if (u.href.replace(/\/$/, '') !== value.replace(/\/$/, '') || !/^(?:\/[A-Za-z0-9_-]+)*\/?$/.test(u.pathname) || u.search || u.hash || u.username || u.password || (u.protocol !== 'https:' && !(location.hostname === 'localhost' && u.origin === 'http://localhost:4320'))) throw new Error('Нужен только HTTPS-адрес вашего API с допустимым префиксом API, без логина и параметров.');
+  return u.origin + u.pathname.replace(/\/$/, '');
 }
 function clearSession() {
   token = ''; expiresAt = 0; groups = []; jobs = []; state = null; $('owner-password').value = '';
@@ -28,11 +28,11 @@ function render() {
   const connected = Boolean(token && expiresAt > Date.now()), vkReady = connected && state?.browser.authenticated;
   $('connect-form').hidden = connected; $('disconnect').hidden = !connected;
   $('server-url').disabled = busy; $('connect').disabled = busy;
-  for (const id of ['start-browser', 'show-qr', 'refresh']) $(id).disabled = !connected || busy || Boolean(state?.workerBusy);
+  for (const id of ['start-browser', 'show-qr', 'refresh']) $(id).disabled = !connected || busy || Boolean(state?.workerBusy) || (id !== 'refresh' && Boolean(state?.browser.setupBlocked));
   $('load-groups').disabled = !vkReady || busy || Boolean(state?.workerBusy);
   for (const id of ['group', 'post-text', 'post-mode', 'prepare-post', 'plan-file', 'import-plan']) $(id).disabled = !vkReady || !groups.length || busy;
   $('server-status').textContent = connected ? 'Связь с VPS подтверждена. Доступ текущей вкладки действует до ' + new Date(expiresAt).toLocaleTimeString('ru-RU', { timeZone: zone }) + ' (Екатеринбург).' : 'Подключения пока нет.';
-  $('vk-status').textContent = !connected ? 'После подключения откройте VK в выделенном браузере VPS.' : vkReady ? 'VK в серверном браузере вошёл в учётную запись. Проверьте сообщества.' : state?.browser.started ? 'VK ожидает входа владельца на VPS. Обновите экран и подтвердите вход телефоном.' : 'Сервер подключён. Нажмите «Открыть VK на VPS».';
+  $('vk-status').textContent = !connected ? 'После подключения откройте VK в выделенном браузере VPS.' : state?.browser.setupBlocked ? 'Сервер готов. Настройка браузера ещё не завершена; публикация пока недоступна.' : vkReady ? 'VK в серверном браузере вошёл в учётную запись. Проверьте сообщества.' : state?.browser.started ? 'VK ожидает входа владельца на VPS. Обновите экран и подтвердите вход телефоном.' : 'Сервер подключён. Нажмите «Открыть VK на VPS».';
   if (vkReady && screenshotUrl) { URL.revokeObjectURL(screenshotUrl); screenshotUrl = ''; $('auth-screen').hidden = true; $('auth-hint').hidden = true; $('auth-screen').removeAttribute('src'); }
   $('jobs').replaceChildren();
   if (!jobs.length) $('jobs').append(node('p', connected ? 'Очередь сервера пуста.' : 'После подключения здесь появятся реальные записи вашего сервера.', 'empty'));
@@ -75,7 +75,7 @@ $('import-plan').addEventListener('click', () => work(async () => {
   try { for (const p of plan) { await api('/api/jobs', { ...p, groupId: Number($('group').value) }); count++; } }
   finally { $('import-status').textContent = `Импортировано черновиков: ${count} из ${plan.length}. Отправка не запускалась.`; await refresh(); }
 }));
-try { $('server-url').value = localStorage.getItem('content-planner:vps-origin') ?? ''; } catch {}
+try { $('server-url').value = localStorage.getItem('content-planner:vps-origin') || 'https://31.76.80.185/content-planner-api'; } catch {}
 const defaultTime = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(Date.now() + 600000)).filter(p => p.type !== 'literal').map(p => [p.type, p.value]));
 $('post-time').value = `${defaultTime.year}-${defaultTime.month}-${defaultTime.day}T${defaultTime.hour}:${defaultTime.minute}`;
 setInterval(async () => { if (!token || busy || document.hidden) return; if (expiresAt <= Date.now()) { clearSession(); notify('Сеанс Content Planner истёк. Войдите снова отдельным паролем сервера.'); return; } try { await refresh(); } catch (error) { notify(error.message, true); } }, 5000);
