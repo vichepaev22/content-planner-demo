@@ -11,7 +11,7 @@ function endpoint(value) {
 }
 function clearSession() {
   token = ''; expiresAt = 0; groups = []; jobs = []; state = null; $('owner-password').value = '';
-  if (screenshotUrl) URL.revokeObjectURL(screenshotUrl); screenshotUrl = ''; $('auth-screen').hidden = true; $('auth-screen').removeAttribute('src'); $('auth-hint').hidden = true; render();
+  if (screenshotUrl) URL.revokeObjectURL(screenshotUrl); screenshotUrl = ''; $('auth-screen').hidden = true; $('auth-screen').removeAttribute('src'); $('auth-hint').hidden = true; $('enlarge-auth').hidden = true; $('vk-login-code').value = ''; $('auth-dialog').close(); $('auth-large').removeAttribute('src'); render();
 }
 async function api(path, body, binary = false) {
   if (!origin) throw new Error('Сначала укажите VPS.');
@@ -26,6 +26,8 @@ async function work(action) { if (busy) return; busy = true; render(); try { awa
 async function refresh() { const result = await api('/api/status'); state = result; jobs = result.queue; render(); }
 function render() {
   const connected = Boolean(token && expiresAt > Date.now()), vkReady = connected && state?.browser.authenticated;
+  const challenge = state?.browser.authChallenge; $('vk-code-form').hidden = !connected || vkReady || !challenge; $('submit-vk-code').disabled = busy || !challenge; $('vk-login-code').disabled = busy || !challenge;
+  if (challenge) { $('vk-login-code').minLength = challenge.minLength; $('vk-login-code').maxLength = challenge.maxLength; $('vk-login-code').pattern = `[0-9]{${challenge.minLength},${challenge.maxLength}}`; }
   $('connect-form').hidden = connected; $('disconnect').hidden = !connected;
   $('server-url').disabled = busy; $('connect').disabled = busy;
   for (const id of ['start-browser', 'show-qr', 'refresh']) $(id).disabled = !connected || busy || Boolean(state?.workerBusy) || (id !== 'refresh' && Boolean(state?.browser.setupBlocked));
@@ -33,6 +35,7 @@ function render() {
   for (const id of ['group', 'post-text', 'post-mode', 'prepare-post', 'plan-file', 'import-plan']) $(id).disabled = !vkReady || !groups.length || busy;
   $('server-status').textContent = connected ? 'Связь с VPS подтверждена. Доступ текущей вкладки действует до ' + new Date(expiresAt).toLocaleTimeString('ru-RU', { timeZone: zone }) + ' (Екатеринбург).' : 'Подключения пока нет.';
   $('vk-status').textContent = !connected ? 'После подключения откройте VK в выделенном браузере VPS.' : state?.browser.setupBlocked ? 'Сервер готов. Настройка браузера ещё не завершена; публикация пока недоступна.' : vkReady ? 'VK в серверном браузере вошёл в учётную запись. Проверьте сообщества.' : state?.browser.started ? 'VK ожидает входа владельца на VPS. Обновите экран и подтвердите вход телефоном.' : 'Сервер подключён. Нажмите «Открыть VK на VPS».';
+  if (vkReady) { $('vk-login-code').value = ''; $('enlarge-auth').hidden = true; $('auth-dialog').close(); $('auth-large').removeAttribute('src'); }
   if (vkReady && screenshotUrl) { URL.revokeObjectURL(screenshotUrl); screenshotUrl = ''; $('auth-screen').hidden = true; $('auth-hint').hidden = true; $('auth-screen').removeAttribute('src'); }
   $('jobs').replaceChildren();
   if (!jobs.length) $('jobs').append(node('p', connected ? 'Очередь сервера пуста.' : 'После подключения здесь появятся реальные записи вашего сервера.', 'empty'));
@@ -61,8 +64,11 @@ $('connect-form').addEventListener('submit', event => { event.preventDefault(); 
 }); });
 $('disconnect').addEventListener('click', () => work(async () => { try { await api('/api/logout', {}); } finally { clearSession(); notify('Сеанс этой вкладки завершён. Утверждённые задания остаются на вашем VPS.'); } }));
 $('start-browser').addEventListener('click', () => work(async () => { await api('/api/browser/start', {}); await refresh(); if (!state.browser.authenticated) await screen(); }));
-async function screen() { const blob = await api('/api/browser/screenshot', undefined, true); if (screenshotUrl) URL.revokeObjectURL(screenshotUrl); screenshotUrl = URL.createObjectURL(blob); $('auth-screen').src = screenshotUrl; $('auth-screen').hidden = false; $('auth-hint').hidden = false; }
+async function screen() { const blob = await api('/api/browser/screenshot', undefined, true); if (screenshotUrl) URL.revokeObjectURL(screenshotUrl); screenshotUrl = URL.createObjectURL(blob); $('auth-screen').src = screenshotUrl; $('auth-screen').hidden = false; $('auth-hint').hidden = false; $('enlarge-auth').hidden = false; $('auth-large').src = screenshotUrl; }
 $('show-qr').addEventListener('click', () => work(async () => { await api('/api/browser/qr', {}); await screen(); await refresh(); }));
+$('enlarge-auth').addEventListener('click', () => $('auth-dialog').showModal());
+$('close-auth').addEventListener('click', () => $('auth-dialog').close());
+$('vk-code-form').addEventListener('submit', event => { event.preventDefault(); const challengeId = state?.browser.authChallenge?.id; let code = $('vk-login-code').value; $('vk-login-code').value = ''; work(async () => { try { await api('/api/browser/code', { code, challengeId }); code = ''; await refresh(); if (!state.browser.authenticated) await screen(); notify(state.browser.authenticated ? 'VK подтвердил вход. Теперь проверьте сообщества.' : 'Код передан в VK. Обновите состояние и проверьте результат входа.'); } finally { code = ''; } }); });
 $('load-groups').addEventListener('click', () => work(async () => { const result = await api('/api/groups'); groups = result.groups; $('group').replaceChildren(); for (const g of groups) { const option = node('option', g.name); option.value = g.id; $('group').append(option); } notify(`Сервер подтвердил сообществ: ${groups.length}.`); }));
 $('post-form').addEventListener('submit', event => { event.preventDefault(); work(async () => { await api('/api/jobs', draftFromForm()); await refresh(); notify('Предпросмотр сохранён на VPS. Проверьте группу, текст и время; отправка начнётся только после утверждения записи в очереди.'); }); });
 $('post-mode').addEventListener('change', updateMode);
