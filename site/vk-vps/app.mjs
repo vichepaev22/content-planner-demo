@@ -58,7 +58,7 @@ function render() {
     }
     if (j.note) article.append(node('p', j.note, 'hint'));
     const controls = node('div', null, 'controls');
-    const retryImage = j.status === 'blocked' && j.image && !j.result && j.note === 'VK не подтвердил готовность фотографии. Запись не отправлена.';
+    const retryImage = j.status === 'blocked' && j.image && !j.result && (j.note === 'VK не подтвердил готовность фотографии. Запись не отправлена.' || j.note === 'В новом редакторе уже есть вложения. Проверьте прежний черновик VK.' && j.resumeImagePreparation && (j.preparationRetryOrigin === 'image-upload-readiness' || j.previousPreparationNote === 'VK не подтвердил готовность фотографии. Запись не отправлена.'));
     if (j.status === 'draft' || retryImage) {
       const send = node('button', retryImage ? 'Повторить подготовку фотографии' : j.mode === 'scheduled' ? 'Утвердить и передать в отложенные VK' : 'Утвердить и опубликовать'); send.type = 'button'; send.disabled = busy || !vkReady;
       send.addEventListener('click', () => work(async () => { await api(`/api/jobs/${j.id}/approve`, { reviewHash: j.reviewHash }); await refresh(); notify('Запись утверждена. VPS выполнит проверку редактора и отправку. Результат появится в очереди.'); })); controls.append(send);

@@ -1,5 +1,5 @@
 {
-  "version": "2026-11-06-r13-image-retry",
+  "version": "2026-11-06-r14-image-restore",
   "mode": "ui-with-vkid",
   "files": [
     {
@@ -144,8 +144,8 @@
     },
     {
       "path": "vk-vps/app.mjs",
-      "bytes": 16428,
-      "sha256": "596fbd68686e8f27e31dcd80037aafd1c23af8351930d9e09f142aaa75444625"
+      "bytes": 16802,
+      "sha256": "460110f96f3f4a2b9bb76c2b2ba0da4637d10714afe18f7517991be213c297ce"
     },
     {
       "path": "vk-vps/style.css",
