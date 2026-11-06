@@ -58,8 +58,9 @@ function render() {
     }
     if (j.note) article.append(node('p', j.note, 'hint'));
     const controls = node('div', null, 'controls');
-    if (j.status === 'draft') {
-      const send = node('button', j.mode === 'scheduled' ? 'Утвердить и передать в отложенные VK' : 'Утвердить и опубликовать'); send.type = 'button'; send.disabled = busy || !vkReady;
+    const retryImage = j.status === 'blocked' && j.image && !j.result && j.note === 'VK не подтвердил готовность фотографии. Запись не отправлена.';
+    if (j.status === 'draft' || retryImage) {
+      const send = node('button', retryImage ? 'Повторить подготовку фотографии' : j.mode === 'scheduled' ? 'Утвердить и передать в отложенные VK' : 'Утвердить и опубликовать'); send.type = 'button'; send.disabled = busy || !vkReady;
       send.addEventListener('click', () => work(async () => { await api(`/api/jobs/${j.id}/approve`, { reviewHash: j.reviewHash }); await refresh(); notify('Запись утверждена. VPS выполнит проверку редактора и отправку. Результат появится в очереди.'); })); controls.append(send);
     }
     if (['draft', 'approved', 'blocked'].includes(j.status)) {
