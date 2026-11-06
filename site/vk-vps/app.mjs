@@ -1,5 +1,6 @@
 const $ = id => document.getElementById(id);
 const zone = 'Asia/Yekaterinburg';
+let imagePreview = ''; const mediaUrls = new Map(), mediaLoads = new Map();
 let origin = '', token = '', expiresAt = 0, groups = [], jobs = [], state, busy = false, screenshotUrl = '';
 const labels = { draft: 'Предпросмотр · не отправлено', approved: 'Утверждено · ожидает VPS', preparing: 'VPS заполняет редактор VK', sending: 'Отправка началась', published: 'VK подтвердил публикацию', scheduled: 'VK подтвердил приём в отложенные', unknown: 'Результат неизвестен · проверьте VK', blocked: 'Остановлено до отправки', cancelled: 'Отменено до отправки' };
 const notify = (text, error = false) => { $('notice').textContent = text; $('notice').classList.toggle('error', error); };
@@ -10,13 +11,14 @@ function endpoint(value) {
   return u.origin + u.pathname.replace(/\/$/, '');
 }
 function clearSession() {
+  for (const url of mediaUrls.values()) URL.revokeObjectURL(url); mediaUrls.clear(); mediaLoads.clear(); clearImage();
   token = ''; expiresAt = 0; groups = []; jobs = []; state = null; $('owner-password').value = '';
   if (screenshotUrl) URL.revokeObjectURL(screenshotUrl); screenshotUrl = ''; $('auth-screen').hidden = true; $('auth-screen').removeAttribute('src'); $('auth-hint').hidden = true; $('enlarge-auth').hidden = true; $('vk-login-code').value = ''; $('auth-dialog').close(); $('auth-large').removeAttribute('src'); render();
 }
-async function api(path, body, binary = false) {
+async function api(path, body, binary = false, mediaType = null) {
   if (!origin) throw new Error('Сначала укажите VPS.');
   const response = await fetch(origin + path, { method: body === undefined ? 'GET' : 'POST', credentials: 'omit', redirect: 'error', referrerPolicy: 'no-referrer',
-    headers: { ...(token ? { Authorization: 'Bearer ' + token } : {}), ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) }, body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(45000) });
+    headers: { ...(token ? { Authorization: 'Bearer ' + token } : {}), ...(body === undefined ? {} : { 'Content-Type': mediaType ?? 'application/json' }) }, body: body === undefined ? undefined : (mediaType ? body : JSON.stringify(body)), signal: AbortSignal.timeout(45000) });
   if (binary && response.ok) return response.blob();
   const data = await response.json();
   if (!response.ok) { if (response.status === 401 && token) clearSession(); throw new Error(data.message ?? 'Сервер отклонил действие.'); }
@@ -32,7 +34,7 @@ function render() {
   $('server-url').disabled = busy; $('connect').disabled = busy;
   for (const id of ['start-browser', 'show-qr', 'refresh']) $(id).disabled = !connected || busy || Boolean(state?.workerBusy) || (id !== 'refresh' && Boolean(state?.browser.setupBlocked));
   $('load-groups').disabled = !vkReady || busy || Boolean(state?.workerBusy);
-  for (const id of ['group', 'post-text', 'post-mode', 'prepare-post', 'plan-file', 'import-plan']) $(id).disabled = !vkReady || !groups.length || busy;
+  for (const id of ['group', 'post-text', 'post-mode', 'prepare-post', 'plan-file', 'import-plan', 'post-image', 'clear-image']) $(id).disabled = !vkReady || !groups.length || busy;
   $('server-status').textContent = connected ? 'Связь с VPS подтверждена. Доступ текущей вкладки действует до ' + new Date(expiresAt).toLocaleTimeString('ru-RU', { timeZone: zone }) + ' (Екатеринбург).' : 'Подключения пока нет.';
   $('vk-status').textContent = !connected ? 'После подключения откройте VK в выделенном браузере VPS.' : state?.browser.setupBlocked ? 'Сервер готов. Настройка браузера ещё не завершена; публикация пока недоступна.' : vkReady ? 'VK в серверном браузере вошёл в учётную запись. Проверьте сообщества.' : state?.browser.started ? 'VK ожидает входа владельца на VPS. Обновите экран и подтвердите вход телефоном.' : 'Сервер подключён. Нажмите «Открыть VK на VPS».';
   if (vkReady) { $('vk-login-code').value = ''; $('enlarge-auth').hidden = true; $('auth-dialog').close(); $('auth-large').removeAttribute('src'); }
@@ -42,6 +44,18 @@ function render() {
   for (const j of [...jobs].reverse()) {
     const article = node('article', null, 'job'), g = groups.find(g => g.id === j.groupId);
     article.append(node('h3', g?.name ?? `Сообщество ${j.groupId}`), node('span', labels[j.status] ?? j.status, 'state ' + j.status), node('p', j.text, 'copy'), node('p', j.publishAt ? 'По плану: ' + new Date(j.publishAt).toLocaleString('ru-RU', { timeZone: zone }) + ' · Екатеринбург' : 'Сразу после утверждения и проверки VPS.', 'hint'));
+    if (j.image) {
+      const image = node('img', null, 'post-image'); image.alt = 'Картинка этой публикации'; article.append(image);
+      if (mediaUrls.has(j.image.id)) image.src = mediaUrls.get(j.image.id);
+      else if (!mediaLoads.has(j.image.id)) {
+        const session = token;
+        const load = api('/api/media/' + j.image.id, undefined, true).then(blob => {
+          if (session !== token || !token) return;
+          mediaUrls.set(j.image.id, URL.createObjectURL(blob)); render();
+        }).catch(() => { image.alt = 'Предпросмотр изображения временно недоступен'; }).finally(() => mediaLoads.delete(j.image.id));
+        mediaLoads.set(j.image.id, load);
+      }
+    }
     if (j.note) article.append(node('p', j.note, 'hint'));
     const controls = node('div', null, 'controls');
     if (j.status === 'draft') {
@@ -70,7 +84,7 @@ $('enlarge-auth').addEventListener('click', () => $('auth-dialog').showModal());
 $('close-auth').addEventListener('click', () => $('auth-dialog').close());
 $('vk-code-form').addEventListener('submit', event => { event.preventDefault(); const challengeId = state?.browser.authChallenge?.id; let code = $('vk-login-code').value; $('vk-login-code').value = ''; work(async () => { try { await api('/api/browser/code', { code, challengeId }); code = ''; await refresh(); if (!state.browser.authenticated) await screen(); notify(state.browser.authenticated ? 'VK подтвердил вход. Теперь проверьте сообщества.' : 'Код передан в VK. Обновите состояние и проверьте результат входа.'); } finally { code = ''; } }); });
 $('load-groups').addEventListener('click', () => work(async () => { const result = await api('/api/groups'); groups = result.groups; $('group').replaceChildren(); for (const g of groups) { const option = node('option', g.name); option.value = g.id; $('group').append(option); } notify(`Сервер подтвердил сообществ: ${groups.length}.`); }));
-$('post-form').addEventListener('submit', event => { event.preventDefault(); work(async () => { await api('/api/jobs', draftFromForm()); await refresh(); notify('Предпросмотр сохранён на VPS. Проверьте группу, текст и время; отправка начнётся только после утверждения записи в очереди.'); }); });
+$('post-form').addEventListener('submit', event => { event.preventDefault(); work(async () => { const value = draftFromForm(), file = $('post-image').files[0]; if (file) { if (!['image/png','image/jpeg'].includes(file.type) || file.size > 5 * 1024 * 1024) throw new Error('Выберите PNG или JPEG до 5 МБ.'); const uploaded = await api('/api/media', file, false, file.type); value.mediaId = uploaded.media.id; } await api('/api/jobs', value); await refresh(); clearImage(); notify('Предпросмотр сохранён на VPS. Проверьте группу, текст и время; отправка начнётся только после утверждения записи в очереди.'); }); });
 $('post-mode').addEventListener('change', updateMode);
 $('refresh').addEventListener('click', () => work(refresh));
 $('import-plan').addEventListener('click', () => work(async () => {
@@ -86,3 +100,7 @@ const defaultTime = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZo
 $('post-time').value = `${defaultTime.year}-${defaultTime.month}-${defaultTime.day}T${defaultTime.hour}:${defaultTime.minute}`;
 setInterval(async () => { if (!token || busy || document.hidden) return; if (expiresAt <= Date.now()) { clearSession(); notify('Сеанс Content Planner истёк. Войдите снова отдельным паролем сервера.'); return; } try { await refresh(); } catch (error) { notify(error.message, true); } }, 5000);
 window.addEventListener('pagehide', clearSession); updateMode(); render();
+
+function clearImage() { if (imagePreview) URL.revokeObjectURL(imagePreview); imagePreview = ''; $('post-image').value = ''; $('image-preview').hidden = true; $('image-preview').removeAttribute('src'); $('clear-image').hidden = true; }
+$('post-image').addEventListener('change', () => { if (imagePreview) URL.revokeObjectURL(imagePreview); imagePreview = ''; const file = $('post-image').files[0]; if (!file) { clearImage(); return; } if (!['image/png','image/jpeg'].includes(file.type) || file.size > 5 * 1024 * 1024) { clearImage(); notify('Выберите PNG или JPEG до 5 МБ.', true); return; } imagePreview = URL.createObjectURL(file); $('image-preview').src = imagePreview; $('image-preview').hidden = false; $('clear-image').hidden = false; });
+$('clear-image').addEventListener('click', clearImage);
