@@ -98,7 +98,6 @@ h1, h2, h3 { text-wrap: balance; }
 }
 
 .workspace {
-  grid-template-columns: minmax(0, 1.07fr) minmax(0, .93fr);
   align-items: start;
   margin-top: var(--gap);
 }
@@ -118,7 +117,7 @@ h1, h2, h3 { text-wrap: balance; }
 }
 
 .connection {
-  --card-padding: clamp(14px, 1.7vw, 20px);
+  padding-block: clamp(14px, 1.7vw, 20px);
 }
 
 .connection h2 { font-size: 22px; }
@@ -374,14 +373,14 @@ footer {
 footer a { display: inline-flex; align-items: center; min-height: 44px; }
 
 @media (max-width: 860px) {
-  .workspace { grid-template-columns: minmax(0, 1fr); }
+  .connections, .workspace { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (max-width: 600px) {
   body { font-size: 14px; }
   header { min-height: 58px; }
   .header-context { font-size: 11px; }
-  .connections, .form-row { grid-template-columns: minmax(0, 1fr); }
+  .form-row { grid-template-columns: minmax(0, 1fr); }
   .form-actions button { justify-self: stretch; }
   input, select, textarea { font-size: 16px; }
   input[type="file"] { font-size: 13px; }

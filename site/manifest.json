@@ -1,5 +1,5 @@
 {
-  "version": "2026-11-07-r16-interface-polish",
+  "version": "2026-11-07-r17-grid-alignment",
   "mode": "ui-with-vkid",
   "files": [
     {
@@ -140,7 +140,7 @@
     {
       "path": "vk-vps/index.html",
       "bytes": 7513,
-      "sha256": "87e13c8d433b646ce87c21aa5d78a61edf2fead2f7663f2074d5fc72908dde35"
+      "sha256": "91e686290c5f794e4574ad60f8cd2caaaef240604cca1d96f35620184c6411ae"
     },
     {
       "path": "vk-vps/app.mjs",
@@ -149,8 +149,8 @@
     },
     {
       "path": "vk-vps/style.css",
-      "bytes": 9221,
-      "sha256": "c200af9de09c707f3175b78187f1bf7d873f0824476587bbc4e243d426f79814"
+      "bytes": 9159,
+      "sha256": "dec4d4a7ae5b9dd40d2d44313ca775cd1cced2f620fb262fd89a11c79754418a"
     },
     {
       "path": "vk-vps/tab-session.mjs",
