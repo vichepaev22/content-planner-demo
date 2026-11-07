@@ -4,8 +4,13 @@ const $ = id => document.getElementById(id);
 const zone = 'Asia/Yekaterinburg';
 let imagePreview = ''; const mediaUrls = new Map(), mediaLoads = new Map();
 let origin = '', token = '', expiresAt = 0, groups = [], jobs = [], state, busy = false, screenshotUrl = '';
+let renderedQueue = '';
 const labels = { draft: 'Предпросмотр · не отправлено', approved: 'Утверждено · ожидает VPS', preparing: 'VPS заполняет редактор VK', sending: 'Отправка началась', published: 'VK подтвердил публикацию', scheduled: 'VK подтвердил приём в отложенные', unknown: 'Результат неизвестен · проверьте VK', blocked: 'Остановлено до отправки', cancelled: 'Отменено до отправки' };
-const notify = (text, error = false) => { $('notice').textContent = text; $('notice').classList.toggle('error', error); };
+const notify = (text, error = false) => {
+  const notice = $('notice');
+  if (notice.textContent !== text) notice.textContent = text;
+  notice.classList.toggle('error', error);
+};
 function node(tag, text, cls) { const e = document.createElement(tag); if (text != null) e.textContent = text; if (cls) e.className = cls; return e; }
 function endpoint(value) {
   const u = new URL(value);
@@ -33,21 +38,34 @@ function render() {
   const connected = Boolean(token && expiresAt > Date.now()), vkReady = connected && state?.browser.authenticated;
   const challenge = state?.browser.authChallenge; $('vk-code-form').hidden = !connected || vkReady || !challenge; $('submit-vk-code').disabled = busy || !challenge; $('vk-login-code').disabled = busy || !challenge;
   if (challenge) { $('vk-login-code').minLength = challenge.minLength; $('vk-login-code').maxLength = challenge.maxLength; $('vk-login-code').pattern = `[0-9]{${challenge.minLength},${challenge.maxLength}}`; }
+  $('server-title').textContent = connected ? 'VPS подключён' : 'Подключить VPS';
   $('connect-form').hidden = connected; $('disconnect').hidden = !connected;
   $('server-url').disabled = busy; $('connect').disabled = busy;
   for (const id of ['start-browser', 'show-qr', 'refresh']) $(id).disabled = !connected || busy || Boolean(state?.workerBusy) || (id !== 'refresh' && Boolean(state?.browser.setupBlocked));
   $('load-groups').disabled = !vkReady || busy || Boolean(state?.workerBusy);
   for (const id of ['group', 'post-text', 'post-mode', 'prepare-post', 'plan-file', 'import-plan', 'post-image', 'clear-image']) $(id).disabled = !vkReady || !groups.length || busy;
-  $('server-status').textContent = connected ? 'Связь с VPS подтверждена. Доступ текущей вкладки действует до ' + new Date(expiresAt).toLocaleTimeString('ru-RU', { timeZone: zone }) + ' (Екатеринбург).' : 'Подключения пока нет.';
-  $('vk-status').textContent = !connected ? 'После подключения откройте VK в выделенном браузере VPS.' : state?.browser.setupBlocked ? 'Сервер готов. Настройка браузера ещё не завершена; публикация пока недоступна.' : vkReady ? (groups.length?'VK подключён. Сообщества готовы к публикации.':'VK подключён. Загружаем сообщества.') : state?.browser.started ? 'VK ожидает входа владельца на VPS. Обновите экран и подтвердите вход телефоном.' : 'Сервер подключён. Нажмите «Открыть VK на VPS».';
+  $('server-status').textContent = connected ? 'Сеанс в этой вкладке до ' + new Date(expiresAt).toLocaleTimeString('ru-RU', { timeZone: zone }) + ' (Екатеринбург).' : 'Подключения пока нет.';
+  $('vk-status').textContent = !connected ? 'VK и сообщества подключатся после входа в кабинет.' : state?.browser.setupBlocked ? 'Сервер готов. Настройка браузера ещё не завершена; публикация пока недоступна.' : vkReady ? (groups.length?'VK подключён. Сообщества готовы к публикации.':'VK подключён. Загружаем сообщества.') : state?.browser.started ? 'VK ожидает входа владельца на VPS. Обновите экран и подтвердите вход телефоном.' : 'Сервер подключён. Нажмите «Открыть VK на VPS».';
   if (vkReady) { $('vk-login-code').value = ''; $('enlarge-auth').hidden = true; $('auth-dialog').close(); $('auth-large').removeAttribute('src'); }
   if (vkReady && screenshotUrl) { URL.revokeObjectURL(screenshotUrl); screenshotUrl = ''; $('auth-screen').hidden = true; $('auth-hint').hidden = true; $('auth-screen').removeAttribute('src'); }
   $('start-browser').hidden=Boolean(vkReady&&groups.length);$('show-qr').hidden=Boolean(vkReady);$('load-groups').hidden=Boolean(vkReady&&groups.length);
+  renderQueue(connected, Boolean(vkReady));
+}
+function renderQueue(connected, vkReady) {
+  const key = JSON.stringify([connected, vkReady, busy, groups, jobs, mediaUrls.size]);
+  if (key === renderedQueue) return;
+  renderedQueue = key;
   $('jobs').replaceChildren();
   if (!jobs.length) $('jobs').append(node('p', connected ? 'Очередь сервера пуста.' : 'После подключения здесь появятся реальные записи вашего сервера.', 'empty'));
   for (const j of [...jobs].reverse()) {
     const article = node('article', null, 'job'), g = groups.find(g => g.id === j.groupId);
-    article.append(node('h3', g?.name ?? `Сообщество ${j.groupId}`), node('span', labels[j.status] ?? j.status, 'state ' + j.status), node('p', j.text, 'copy'), node('p', j.publishAt ? 'По плану: ' + new Date(j.publishAt).toLocaleString('ru-RU', { timeZone: zone }) + ' · Екатеринбург' : 'Сразу после утверждения и проверки VPS.', 'hint'));
+    const heading = node('div', null, 'job-heading');
+    heading.append(node('h3', g?.name ?? 'Сообщество ' + j.groupId),
+      node('span', labels[j.status] ?? j.status, 'state ' + j.status));
+    const timing = j.publishAt
+      ? 'По плану: ' + new Date(j.publishAt).toLocaleString('ru-RU', { timeZone: zone }) + ' · Екатеринбург'
+      : 'Сразу после утверждения и проверки VPS.';
+    article.append(heading, node('p', j.text, 'copy'), node('p', timing, 'hint time'));
     if (j.image) {
       const image = node('img', null, 'post-image'); image.alt = 'Картинка этой публикации'; article.append(image);
       if (mediaUrls.has(j.image.id)) image.src = mediaUrls.get(j.image.id);

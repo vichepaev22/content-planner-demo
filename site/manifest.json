@@ -1,5 +1,5 @@
 {
-  "version": "2026-11-07-r15-auto-reconnect",
+  "version": "2026-11-07-r16-interface-polish",
   "mode": "ui-with-vkid",
   "files": [
     {
@@ -139,18 +139,18 @@
     },
     {
       "path": "vk-vps/index.html",
-      "bytes": 7486,
-      "sha256": "2c8e3f65e56c2deca6d3aa771f6dffd9baf7ea55d62f0db8c90a749b6a32cb71"
+      "bytes": 7513,
+      "sha256": "87e13c8d433b646ce87c21aa5d78a61edf2fead2f7663f2074d5fc72908dde35"
     },
     {
       "path": "vk-vps/app.mjs",
-      "bytes": 18596,
-      "sha256": "c4815b4cbd3db40d8ada1d119052afcffd22fbe10d33891c54d6a59ce79e2b16"
+      "bytes": 18943,
+      "sha256": "bd96982b3b4335a1d8818c2f22326be5036831715b177c2859ba6fd4f8df8e5a"
     },
     {
       "path": "vk-vps/style.css",
-      "bytes": 3770,
-      "sha256": "1bb4c640cdb8d3de881cd3c8d2afeb37807ccedcbf054cc824e66833b666951d"
+      "bytes": 9221,
+      "sha256": "c200af9de09c707f3175b78187f1bf7d873f0824476587bbc4e243d426f79814"
     },
     {
       "path": "vk-vps/tab-session.mjs",
