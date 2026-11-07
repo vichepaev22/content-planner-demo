@@ -1,5 +1,5 @@
 {
-  "version": "2026-11-07-r17-grid-alignment",
+  "version": "2026-11-07-r18-editorial-import",
   "mode": "ui-with-vkid",
   "files": [
     {
@@ -139,23 +139,28 @@
     },
     {
       "path": "vk-vps/index.html",
-      "bytes": 7513,
-      "sha256": "91e686290c5f794e4574ad60f8cd2caaaef240604cca1d96f35620184c6411ae"
+      "bytes": 10876,
+      "sha256": "3debbd440e65b9f08a79fe71fb4e19ec861bf9b81c94c61c3ae0fc48f957676b"
     },
     {
       "path": "vk-vps/app.mjs",
-      "bytes": 18943,
-      "sha256": "bd96982b3b4335a1d8818c2f22326be5036831715b177c2859ba6fd4f8df8e5a"
+      "bytes": 26322,
+      "sha256": "e867ae79ea7b6798343b56e27ab216fa2c57f83a2fb26039017ec21e7ee75207"
     },
     {
       "path": "vk-vps/style.css",
-      "bytes": 9159,
-      "sha256": "dec4d4a7ae5b9dd40d2d44313ca775cd1cced2f620fb262fd89a11c79754418a"
+      "bytes": 12996,
+      "sha256": "87b7960578e3788d5a92dc9ac8b2ea816c18847ec79ecc1b631a2791922414a1"
     },
     {
       "path": "vk-vps/tab-session.mjs",
       "bytes": 724,
       "sha256": "d344bfa5692d51fdb1eb7aea92aa5843ef4fe76b873ef072c7cbeaf4a9966012"
+    },
+    {
+      "path": "vk-vps/editorial-plan.mjs",
+      "bytes": 5715,
+      "sha256": "34c001cbd620b3afe9b147933784584a95edc3959c694c279c3b28805e2be061"
     }
   ]
 }

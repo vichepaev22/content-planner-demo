@@ -386,3 +386,104 @@ footer a { display: inline-flex; align-items: center; min-height: 44px; }
   input[type="file"] { font-size: 13px; }
   .job .controls { align-items: stretch; }
 }
+
+/* The workspace uses the same sidebar and active-section pattern as Best Service. */
+.planner-main { padding-block: clamp(18px, 3vw, 36px) 36px; }
+.entry { width: min(100%, 470px); margin: clamp(12px, 7vh, 76px) auto 0; }
+.entry .card { margin-top: 20px; }
+.panel-heading { min-width: 0; margin-block-end: 16px; }
+.panel-heading h1, .studio-body .title-row h1 {
+  margin: 4px 0 6px;
+  font: clamp(28px, 4vw, 40px)/1.12 Georgia, serif;
+  letter-spacing: -.025em;
+}
+.panel-heading > p:last-child:not(.eyebrow) { margin: 0; color: var(--muted); }
+.notice:empty { display: none; }
+.entry:not([hidden]) + .notice { width: min(100%, 470px); margin: 14px auto 0; }
+.studio-shell {
+  display: grid;
+  grid-template-columns: clamp(172px, 21vw, 232px) minmax(0, 1fr);
+  align-items: start;
+  gap: clamp(14px, 2vw, 28px);
+}
+.studio-sidebar {
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  position: sticky;
+  top: 18px;
+}
+.studio-sidebar > p { padding: 8px 9px; }
+.studio-sidebar nav { display: grid; gap: 4px; }
+.workspace-link {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 9px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 10px;
+  text-align: left;
+  white-space: nowrap;
+}
+.workspace-link, .editorial-row {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ink);
+  box-shadow: none;
+}
+.workspace-link:enabled:hover, .editorial-row:enabled:hover {
+  color: var(--accent-hover);
+  background: var(--surface-quiet);
+}
+.workspace-link[aria-current="page"], .editorial-row[aria-pressed="true"] {
+  background: var(--surface-quiet);
+  border-color: var(--line);
+  color: var(--accent-hover);
+}
+.workspace-link svg { flex: none; }
+.studio-body { min-width: 0; }
+.studio-body .connections { grid-template-columns: minmax(0, 1fr); }
+.studio-body .connections .panel-heading { margin-bottom: 0; }
+.plan-source h2, .plan-list h2 { margin-top: 0; }
+.plan-source { min-width: 0; }
+.sheet-link-form { display: flex; align-items: end; gap: 12px; }
+.sheet-link-form label { flex: 1; min-width: 0; margin: 0; }
+.sheet-link-form button { flex: none; }
+.sheet-download { display: inline-flex; align-items: center; min-height: 44px; margin-top: 7px; font-weight: 650; }
+.plan-upload { display: block; margin-top: 14px; }
+.plan-feedback { margin-bottom: 0; min-height: 1.6em; font-variant-numeric: tabular-nums; }
+.plan-feedback.field-error { color: #8c3828; }
+.plan-results { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.65fr); gap: 14px; margin-top: 14px; align-items: start; }
+.editorial-rows { margin: 0; padding: 0; list-style: none; display: grid; gap: 5px; }
+.editorial-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
+  min-height: 48px;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.editorial-row small { display: block; font-weight: 450; color: var(--muted); font-variant-numeric: tabular-nums; }
+.editorial-preview { overflow-wrap: anywhere; }
+.editorial-preview h3 { margin-bottom: 6px; font-size: .9rem; }
+.editorial-copy { margin-top: 0; white-space: pre-wrap; text-wrap: pretty; }
+@media (max-width: 780px) {
+  .studio-shell { grid-template-columns: minmax(0, 1fr); }
+  .studio-sidebar { position: static; }
+  .studio-sidebar > p { display: none; }
+  .studio-sidebar nav { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .workspace-link { justify-content: center; }
+}
+@media (max-width: 580px) {
+  .studio-sidebar { padding: 8px; }
+  .studio-sidebar nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .workspace-link { justify-content: start; }
+  .sheet-link-form { align-items: stretch; flex-direction: column; }
+  .plan-results { grid-template-columns: minmax(0, 1fr); }
+}

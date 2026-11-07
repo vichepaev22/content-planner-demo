@@ -1,10 +1,12 @@
 import {saveTabSession,restoreTabSession,clearTabSession} from './tab-session.mjs';
+import { googleSheetCsvUrl, localPublicationTime, parseEditorialPlan, PLAN_MAX_BYTES } from './editorial-plan.mjs';
 const tabStorage=(()=>{try{return sessionStorage;}catch{return null;}})();
 const $ = id => document.getElementById(id);
 const zone = 'Asia/Yekaterinburg';
 let imagePreview = ''; const mediaUrls = new Map(), mediaLoads = new Map();
 let origin = '', token = '', expiresAt = 0, groups = [], jobs = [], state, busy = false, screenshotUrl = '';
 let renderedQueue = '';
+let activePanel = 'plan', editorialRows = [], selectedRow = 0, planLoad = 0;
 const labels = { draft: 'Предпросмотр · не отправлено', approved: 'Утверждено · ожидает VPS', preparing: 'VPS заполняет редактор VK', sending: 'Отправка началась', published: 'VK подтвердил публикацию', scheduled: 'VK подтвердил приём в отложенные', unknown: 'Результат неизвестен · проверьте VK', blocked: 'Остановлено до отправки', cancelled: 'Отменено до отправки' };
 const notify = (text, error = false) => {
   const notice = $('notice');
@@ -18,6 +20,12 @@ function endpoint(value) {
   return u.origin + u.pathname.replace(/\/$/, '');
 }
 function clearSession() {
+  resetEditorialPlan();
+  activePanel = 'plan';
+  $('post-text').value = '';
+  $('post-time').value = initialPublicationTime();
+  $('post-mode').value = 'now';
+  updateMode();
   clearTabSession(tabStorage);
   for (const url of mediaUrls.values()) URL.revokeObjectURL(url); mediaUrls.clear(); mediaLoads.clear(); clearImage();
   token = ''; expiresAt = 0; groups = []; jobs = []; state = null; $('owner-password').value = '';
@@ -49,6 +57,7 @@ function render() {
   if (vkReady) { $('vk-login-code').value = ''; $('enlarge-auth').hidden = true; $('auth-dialog').close(); $('auth-large').removeAttribute('src'); }
   if (vkReady && screenshotUrl) { URL.revokeObjectURL(screenshotUrl); screenshotUrl = ''; $('auth-screen').hidden = true; $('auth-hint').hidden = true; $('auth-screen').removeAttribute('src'); }
   $('start-browser').hidden=Boolean(vkReady&&groups.length);$('show-qr').hidden=Boolean(vkReady);$('load-groups').hidden=Boolean(vkReady&&groups.length);
+  renderWorkspace(connected, Boolean(vkReady && groups.length));
   renderQueue(connected, Boolean(vkReady));
 }
 function renderQueue(connected, vkReady) {
@@ -97,7 +106,7 @@ function draftFromForm() { return { groupId: Number($('group').value), text: $('
 $('connect-form').addEventListener('submit', event => { event.preventDefault(); const password = $('owner-password').value; const nextOrigin = $('server-url').value.trim(); work(async () => {
   clearSession(); origin = endpoint(nextOrigin); const result = await api('/api/login', { password }); token = result.token; expiresAt = result.expiresAt; $('owner-password').value = '';
   try { localStorage.setItem('content-planner:vps-origin', origin); } catch {}
-  saveTabSession(tabStorage,{origin,token,expiresAt}); await initializeConnected();
+  saveTabSession(tabStorage,{origin,token,expiresAt}); await initializeConnected({ showConnections: true });
 }); });
 $('disconnect').addEventListener('click', () => work(async () => { try { await api('/api/logout', {}); } finally { clearSession(); notify('Сеанс этой вкладки завершён. Утверждённые задания остаются на вашем VPS.'); } }));
 $('start-browser').addEventListener('click', () => work(initializeConnected));
@@ -110,9 +119,9 @@ async function loadGroups() {
   const result=await api('/api/groups');groups=result.groups;
   $('group').replaceChildren();for(const g of groups){const option=node('option',g.name);option.value=g.id;$('group').append(option);}
 }
-async function initializeConnected() {
+async function initializeConnected({ showConnections = false } = {}) {
   await refresh();
-  if(state.browser.setupBlocked){notify('Настройка браузера на VPS ещё не завершена.');return;}
+  if(state.browser.setupBlocked){if(showConnections) selectPanel('connections', true);notify('Настройка браузера на VPS ещё не завершена.');return;}
   if(state.workerBusy||state.browser.busy){notify('Сеанс восстановлен. VPS выполняет утверждённое задание.');return;}
   if(!state.browser.started){notify('Открываем сохранённый профиль VK на VPS.');await api('/api/browser/start',{});}
   for(let n=0;n<12;n++) {
@@ -120,10 +129,14 @@ async function initializeConnected() {
     await new Promise(resolve=>setTimeout(resolve,750));
   }
   if(state.browser.authenticated){await loadGroups();notify('Готово: VK подключён, сообщества загружены. Можно создавать публикации.');}
-  else {await screen();notify('VK запросил подтверждение входа. Подтвердите его телефоном.');}
+  else {
+    if (showConnections && activePanel === 'plan') selectPanel('connections', true);
+    await screen();
+    notify('VK запросил подтверждение входа. Подтвердите его телефоном.');
+  }
 }
 $('load-groups').addEventListener('click',()=>work(async()=>{await loadGroups();notify(`Сервер подтвердил сообществ: ${groups.length}.`);}));
-$('post-form').addEventListener('submit', event => { event.preventDefault(); work(async () => { const value = draftFromForm(), file = $('post-image').files[0]; if (file) { if (!['image/png','image/jpeg'].includes(file.type) || file.size > 5 * 1024 * 1024) throw new Error('Выберите PNG или JPEG до 5 МБ.'); const uploaded = await api('/api/media', file, false, file.type); value.mediaId = uploaded.media.id; } await api('/api/jobs', value); await refresh(); clearImage(); notify('Предпросмотр сохранён на VPS. Проверьте группу, текст и время; отправка начнётся только после утверждения записи в очереди.'); }); });
+$('post-form').addEventListener('submit', event => { event.preventDefault(); work(async () => { const value = draftFromForm(), file = $('post-image').files[0]; if (file) { if (!['image/png','image/jpeg'].includes(file.type) || file.size > 5 * 1024 * 1024) throw new Error('Выберите PNG или JPEG до 5 МБ.'); const uploaded = await api('/api/media', file, false, file.type); value.mediaId = uploaded.media.id; } await api('/api/jobs', value); await refresh(); clearImage(); selectPanel('queue', true); notify('Предпросмотр сохранён на VPS. Проверьте группу, текст и время; отправка начнётся только после утверждения записи в очереди.'); }); });
 $('post-mode').addEventListener('change', updateMode);
 $('refresh').addEventListener('click', () => work(refresh));
 $('import-plan').addEventListener('click', () => work(async () => {
@@ -134,12 +147,152 @@ $('import-plan').addEventListener('click', () => work(async () => {
   try { for (const p of plan) { await api('/api/jobs', { ...p, groupId: Number($('group').value) }); count++; } }
   finally { $('import-status').textContent = `Импортировано черновиков: ${count} из ${plan.length}. Отправка не запускалась.`; await refresh(); }
 }));
+
+const navigation = [...document.querySelectorAll('[data-panel]')];
+const serverCard = $('server-card');
+
+function selectPanel(panel, focus = false) {
+  activePanel = panel;
+  for (const button of navigation) {
+    const selected = button.dataset.panel === panel;
+    if (selected) button.setAttribute('aria-current', 'page');
+    else button.removeAttribute('aria-current');
+    $(button.getAttribute('aria-controls')).hidden = !selected;
+  }
+  if (focus) $('panel-' + panel).querySelector('h1').focus();
+}
+
+function renderWorkspace(connected, ready) {
+  $('entry').hidden = connected;
+  $('studio').hidden = !connected;
+  const slot = connected ? $('server-card-slot') : $('entry');
+  if (serverCard.parentElement !== slot) slot.append(serverCard);
+  selectPanel(activePanel);
+  const prepare = $('prepare-editorial-post');
+  if (prepare) prepare.disabled = busy || !ready;
+  const hint = $('editorial-vk-hint');
+  if (hint) hint.hidden = ready;
+}
+
+function resetEditorialPlan() {
+  planLoad++;
+  editorialRows = [];
+  selectedRow = 0;
+  $('editorial-file').value = '';
+  $('sheet-link').value = '';
+  $('sheet-download').hidden = true;
+  $('sheet-download').removeAttribute('href');
+  planFeedback('В первой строке укажите «Тема» или «Текст поста». Можно добавить дату, время, цель, формат и промпт.');
+  renderEditorialRows();
+}
+
+function planFeedback(message, isError = false) {
+  $('plan-feedback').textContent = message;
+  $('plan-feedback').classList.toggle('field-error', isError);
+}
+
+function renderEditorialRows(focusRow = false) {
+  const list = $('editorial-rows');
+  const preview = $('editorial-preview');
+  list.replaceChildren();
+  preview.replaceChildren();
+  $('plan-results').hidden = !editorialRows.length;
+  const focusPreview = focusRow && window.matchMedia('(max-width: 580px)').matches;
+  for (const [index, post] of editorialRows.entries()) {
+    const button = node('button', post.topic || 'Строка ' + post.number, 'editorial-row');
+    button.type = 'button';
+    button.setAttribute('aria-pressed', String(index === selectedRow));
+    button.append(node('small', [post.date, post.carousel ? 'Карусель' : (post.format || 'Пост')].filter(Boolean).join(' · ')));
+    button.addEventListener('click', () => { selectedRow = index; renderEditorialRows(true); });
+    const item = node('li');
+    item.append(button);
+    list.append(item);
+    if (focusRow && !focusPreview && index === selectedRow) button.focus();
+  }
+  const post = editorialRows[selectedRow];
+  if (!post) return;
+  const title = node('h2', post.topic || 'Запись без темы');
+  title.tabIndex = -1;
+  preview.append(node('p', 'СТРОКА ' + post.number, 'step'), title);
+  const meta = [post.format || 'Пост', [post.date, post.time].filter(Boolean).join(' '), post.goal].filter(Boolean);
+  preview.append(node('p', meta.join(' · '), 'hint'));
+  preview.append(node('h3', 'Текст поста'), node('p', post.text || 'Текст ещё не добавлен.', 'editorial-copy'));
+  preview.append(node('h3', 'Промпт изображения'), node('p', post.prompt || 'Промпт ещё не добавлен.', 'editorial-copy'));
+  if (post.carousel) {
+    preview.append(node('p', 'Запись с карточками доступна для просмотра. Отправку карусели подключим после проверки в VK.', 'hint'));
+  } else if (post.text && post.text.length <= 2000) {
+    const prepare = node('button', 'Открыть в редакторе');
+    prepare.id = 'prepare-editorial-post';
+    prepare.type = 'button';
+    prepare.disabled = busy || !state?.browser.authenticated || !groups.length;
+    prepare.addEventListener('click', () => openEditorialPost(post));
+    const hint = node('p', 'Для подготовки публикации подключите сообщество VK.', 'hint');
+    hint.id = 'editorial-vk-hint';
+    hint.hidden = Boolean(state?.browser.authenticated && groups.length);
+    preview.append(prepare, hint);
+  } else if (post.text) {
+    preview.append(node('p', 'Для текущего редактора сократите текст до 2 000 символов.', 'hint'));
+  }
+  if (focusPreview) title.focus();
+}
+
+function openEditorialPost(post) {
+  if (busy || !state?.browser.authenticated || !groups.length) return;
+  const currentText = $('post-text').value;
+  if (((currentText && currentText !== post.text) || $('post-image').files.length)
+    && !window.confirm('Заменить текст и убрать выбранное изображение в редакторе?')) return;
+  clearImage();
+  $('post-text').value = post.text;
+  $('post-mode').value = 'scheduled';
+  $('post-time').value = localPublicationTime(post.date, post.time);
+  updateMode();
+  selectPanel('composer', true);
+}
+
+for (const button of navigation) button.addEventListener('click', () => selectPanel(button.dataset.panel, true));
+$('sheet-link').addEventListener('input', () => {
+  $('sheet-download').hidden = true;
+  $('sheet-download').removeAttribute('href');
+});
+$('sheet-link-form').addEventListener('submit', event => {
+  event.preventDefault();
+  try {
+    $('sheet-download').href = googleSheetCsvUrl($('sheet-link').value);
+    $('sheet-download').hidden = false;
+    $('sheet-download').focus();
+    planFeedback('Скачайте нужный лист в Google и выберите полученный CSV.');
+  } catch (error) {
+    planFeedback(error.message, true);
+  }
+});
+$('editorial-file').addEventListener('change', async () => {
+  const file = $('editorial-file').files[0], version = ++planLoad;
+  if (!file) return;
+  try {
+    if (file.size > PLAN_MAX_BYTES) throw new Error('Выберите CSV размером до 1 МБ.');
+    const input = new TextDecoder('utf-8', { fatal: true }).decode(await file.arrayBuffer());
+    if (version !== planLoad) return;
+    editorialRows = parseEditorialPlan(input);
+    selectedRow = 0;
+    renderEditorialRows();
+    planFeedback('Прочитано записей: ' + editorialRows.length + '. Выберите запись для просмотра.');
+  } catch (error) {
+    if (version !== planLoad) return;
+    $('editorial-file').value = '';
+    planFeedback((error instanceof TypeError ? 'Не удалось прочитать файл. Скачайте CSV в кодировке UTF‑8.' : error.message)
+      + (editorialRows.length ? ' Ниже показан предыдущий план.' : ''), true);
+  }
+});
+
 try { $('server-url').value = localStorage.getItem('content-planner:vps-origin') || 'https://31.76.80.185/content-planner-api'; } catch {}
-const defaultTime = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(Date.now() + 600000)).filter(p => p.type !== 'literal').map(p => [p.type, p.value]));
-$('post-time').value = `${defaultTime.year}-${defaultTime.month}-${defaultTime.day}T${defaultTime.hour}:${defaultTime.minute}`;
+function initialPublicationTime() {
+  const defaultTime = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(Date.now() + 600000)).filter(p => p.type !== 'literal').map(p => [p.type, p.value]));
+  return `${defaultTime.year}-${defaultTime.month}-${defaultTime.day}T${defaultTime.hour}:${defaultTime.minute}`;
+}
+$('post-time').value = initialPublicationTime();
 setInterval(async () => { if (!token || busy || document.hidden) return; if (expiresAt <= Date.now()) { clearSession(); notify('Сеанс Content Planner истёк. Войдите снова отдельным паролем сервера.'); return; } try { await refresh(); if(!state.workerBusy&&!state.browser.busy&&(!state.browser.started||state.browser.authenticated&&!groups.length))await work(initializeConnected); } catch (error) { notify(error.message, true); } }, 5000);
 window.addEventListener('pagehide',()=>{if(token)saveTabSession(tabStorage,{origin,token,expiresAt});}); updateMode(); render();
-try {const target=endpoint($('server-url').value);const saved=restoreTabSession(tabStorage,target);if(saved){origin=saved.origin;token=saved.token;expiresAt=saved.expiresAt;await work(initializeConnected);}}catch{clearTabSession(tabStorage);}
+try {const target=endpoint($('server-url').value);const saved=restoreTabSession(tabStorage,target);if(saved){origin=saved.origin;token=saved.token;expiresAt=saved.expiresAt;await work(() => initializeConnected({ showConnections: true }));}}catch{clearTabSession(tabStorage);}
 
 function clearImage() { if (imagePreview) URL.revokeObjectURL(imagePreview); imagePreview = ''; $('post-image').value = ''; $('image-preview').hidden = true; $('image-preview').removeAttribute('src'); $('clear-image').hidden = true; }
 $('post-image').addEventListener('change', () => { if (imagePreview) URL.revokeObjectURL(imagePreview); imagePreview = ''; const file = $('post-image').files[0]; if (!file) { clearImage(); return; } if (!['image/png','image/jpeg'].includes(file.type) || file.size > 5 * 1024 * 1024) { clearImage(); notify('Выберите PNG или JPEG до 5 МБ.', true); return; } imagePreview = URL.createObjectURL(file); $('image-preview').src = imagePreview; $('image-preview').hidden = false; $('clear-image').hidden = false; });
