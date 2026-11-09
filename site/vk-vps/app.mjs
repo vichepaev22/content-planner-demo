@@ -1,12 +1,13 @@
 import {saveTabSession,restoreTabSession,clearTabSession} from './tab-session.mjs';
 import { googleSheetCsvUrl, localPublicationTime, parseEditorialPlan, PLAN_MAX_BYTES } from './editorial-plan.mjs';
+import { mountCampaign } from './campaign-workspace.mjs';
 const tabStorage=(()=>{try{return sessionStorage;}catch{return null;}})();
 const $ = id => document.getElementById(id);
 const zone = 'Asia/Yekaterinburg';
 let imagePreview = ''; const mediaUrls = new Map(), mediaLoads = new Map();
 let origin = '', token = '', expiresAt = 0, groups = [], jobs = [], state, busy = false, screenshotUrl = '';
 let renderedQueue = '';
-let activePanel = 'plan', editorialRows = [], selectedRow = 0, planLoad = 0;
+let activePanel = 'campaign', editorialRows = [], selectedRow = 0, planLoad = 0;
 const labels = { draft: 'Предпросмотр · не отправлено', approved: 'Утверждено · ожидает VPS', preparing: 'VPS заполняет редактор VK', sending: 'Отправка началась', published: 'VK подтвердил публикацию', scheduled: 'VK подтвердил приём в отложенные', unknown: 'Результат неизвестен · проверьте VK', blocked: 'Остановлено до отправки', cancelled: 'Отменено до отправки' };
 const notify = (text, error = false) => {
   const notice = $('notice');
@@ -21,7 +22,7 @@ function endpoint(value) {
 }
 function clearSession() {
   resetEditorialPlan();
-  activePanel = 'plan';
+  activePanel = 'campaign';
   $('post-text').value = '';
   $('post-time').value = initialPublicationTime();
   $('post-mode').value = 'now';
@@ -70,7 +71,7 @@ function renderQueue(connected, vkReady) {
     const article = node('article', null, 'job'), g = groups.find(g => g.id === j.groupId);
     const heading = node('div', null, 'job-heading');
     heading.append(node('h3', g?.name ?? 'Сообщество ' + j.groupId),
-      node('span', labels[j.status] ?? j.status, 'state ' + j.status));
+      node('span', j.campaignId && j.status==='approved' ? (Date.parse(j.publishAt)>Date.now()+7*86400000 ? 'Ожидает окна VK' : vkReady ? 'Утверждено · ожидает VPS' : 'Ожидает подключения VK') : labels[j.status] ?? j.status, 'state ' + j.status));
     const timing = j.publishAt
       ? 'По плану: ' + new Date(j.publishAt).toLocaleString('ru-RU', { timeZone: zone }) + ' · Екатеринбург'
       : 'Сразу после утверждения и проверки VPS.';
@@ -130,7 +131,7 @@ async function initializeConnected({ showConnections = false } = {}) {
   }
   if(state.browser.authenticated){await loadGroups();notify('Готово: VK подключён, сообщества загружены. Можно создавать публикации.');}
   else {
-    if (showConnections && activePanel === 'plan') selectPanel('connections', true);
+    if (showConnections && ['plan','campaign'].includes(activePanel)) selectPanel('connections', true);
     await screen();
     notify('VK запросил подтверждение входа. Подтвердите его телефоном.');
   }
@@ -168,6 +169,7 @@ function renderWorkspace(connected, ready) {
   const slot = connected ? $('server-card-slot') : $('entry');
   if (serverCard.parentElement !== slot) slot.append(serverCard);
   selectPanel(activePanel);
+  campaignUi.updateConnection(connected, ready);
   const prepare = $('prepare-editorial-post');
   if (prepare) prepare.disabled = busy || !ready;
   const hint = $('editorial-vk-hint');
@@ -284,6 +286,7 @@ $('editorial-file').addEventListener('change', async () => {
   }
 });
 
+const campaignUi=mountCampaign({api,selectPanel,refreshQueue:refresh});
 try { $('server-url').value = localStorage.getItem('content-planner:vps-origin') || 'https://31.76.80.185/content-planner-api'; } catch {}
 function initialPublicationTime() {
   const defaultTime = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(Date.now() + 600000)).filter(p => p.type !== 'literal').map(p => [p.type, p.value]));

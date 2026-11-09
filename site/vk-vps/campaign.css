@@ -1,0 +1,75 @@
+
+#panel-campaign{min-width:0}
+.campaign-heading{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.campaign-heading p{margin-bottom:0}
+.campaign-status{padding:9px 12px;border:1px solid var(--line);background:var(--surface-quiet);border-radius:10px;font-size:.84rem;margin:0 0 13px}
+.cp-error,.campaign-status.cp-error{color:#843629;background:#fff2eb}
+.cp-error{padding:7px 10px;border-radius:8px;font-size:.83rem}
+.campaign-brief{display:grid;grid-template-columns:minmax(0,1fr) minmax(165px,205px);gap:14px;align-items:start}
+#cp-form{display:grid;gap:10px;min-width:0}
+.cp-card{padding:15px;border:1px solid var(--line);border-radius:16px}
+.cp-card h2,.cp-calendar-head h2{font:700 1rem/1.25 system-ui,sans-serif;margin:0 0 10px}
+.cp-card label{margin:0}
+.cp-card>label+label,.cp-card .hint+label{margin-top:9px}
+.cp-goals{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.cp-goals label{position:relative;display:flex;align-items:center;min-height:62px;padding:8px 9px;border:1px solid var(--line);border-radius:9px;background:#f9fbf4;cursor:pointer;font-size:.84rem}
+.cp-goals label:has(input:checked){border-color:#7a9a85;background:#e9f0e5}
+.cp-goals label:has(input:focus-visible){outline:2px solid var(--focus);outline-offset:2px}
+.cp-goals input{position:absolute;opacity:0;width:1px;height:1px;padding:0}
+.cp-goals small{display:block;margin-top:3px;color:var(--muted);font-size:.73rem;font-weight:500}
+.cp-inline{display:flex;align-items:flex-end;flex-wrap:wrap;gap:10px}
+.cp-inline label{min-width:118px;flex:1}
+.cp-note,.cp-timing,.cp-composer,.cp-schedule{padding:10px;border:1px solid var(--line);border-radius:10px;background:#edf2e8}
+.cp-note p,.cp-composer p{margin:3px 0 0;font-size:.82rem}
+.cp-frequency{display:flex;justify-content:space-between;gap:5px;margin-top:12px!important}
+#cp-frequency{padding:0;margin:3px 0 0;height:32px;min-height:32px;accent-color:var(--accent);background:none;border:none}
+.cp-scale,.cp-timing,.cp-calendar-head,.cp-post-controls,.cp-actions{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.cp-scale{font-size:.71rem;color:var(--muted)}
+.cp-actions{justify-content:flex-end;margin-top:10px}
+.cp-summary{position:sticky;top:14px;padding:16px;border:1px solid #adc3ac;border-radius:15px;background:linear-gradient(145deg,#e5eddc,#fffdf7 57%);font-size:.82rem}
+.cp-summary strong{display:block;margin-top:4px;font:clamp(1.42rem,2.7vw,2.4rem)/1 Georgia,serif;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.cp-summary p:not(.step){color:var(--muted);margin:8px 0 0}
+.cp-cover{position:relative;isolation:isolate;overflow:hidden;padding:18px 20px;border:1px solid #bad0b7;border-radius:16px;background:#e2ecd9}
+.cp-cover::after{content:"";position:absolute;z-index:-1;width:340px;height:150px;right:-30px;top:32px;border:1px solid #79a18799;border-radius:50%;box-shadow:0 10px 0 -1px #e2ecd9,0 11px 0 #79a18799,0 21px 0 -1px #e2ecd9,0 22px 0 #79a18799;rotate:-18deg}
+.cp-cover h2{margin:4px 0;font:clamp(1.85rem,3.5vw,2.75rem)/1.08 Georgia,serif;letter-spacing:-.032em;overflow-wrap:anywhere}
+.cp-cover p:last-child{margin:6px 0 0;color:var(--muted)}
+.cp-calendar-card{padding:12px;border:1px solid var(--line);border-radius:15px}
+.cp-calendar-head h2{margin:0}
+.cp-calendar-head p{margin:3px 0}
+.cp-timing{margin:9px 0;font-size:.83rem}
+.cp-timing strong{font-variant-numeric:tabular-nums}
+.cp-timing small{color:var(--muted);margin-left:5px}
+.cp-weekdays,.cp-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.cp-weekdays{margin-bottom:4px;font-size:.72rem;color:var(--muted)}
+.cp-day{min-width:0;min-height:68px;padding:4px;border:1px solid #e0e7dc;border-radius:7px;background:#f6f8f1}
+.cp-pad{background:transparent;border-color:transparent}
+.cp-date{display:block;color:var(--muted);font-size:.7rem;font-weight:650;font-variant-numeric:tabular-nums}
+.cp-event{display:block;width:100%;padding:5px;border:1px solid transparent;border-radius:6px;text-align:left;min-height:44px;margin-top:3px;background:#e7efdf;color:#234638;box-shadow:none;font-size:.71rem;font-weight:680;line-height:1.23;overflow-wrap:anywhere}
+.cp-event:enabled:hover{border-color:currentColor;background:#e8efea;color:#234638}
+.cp-event small{display:block;font-variant-numeric:tabular-nums}
+.cp-phase-1{background:#e0eceb;color:#315458}
+.cp-phase-2{background:#eeebf4;color:#504064}
+.cp-phase-3{background:#f4e8d2;color:#704818}
+.cp-list{display:grid;gap:8px}
+.cp-post{padding:11px 13px;border-radius:13px}
+.cp-post h3{margin:0;font-size:1rem}
+.cp-post p{margin:4px 0}
+.cp-post .cp-copy{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.84rem}
+.cp-post button{margin-top:5px}
+.cp-dialog{padding:0;width:min(94vw,470px);max-width:94vw;border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);box-shadow:0 14px 35px #17332838}
+.cp-dialog::backdrop{background:#17332866}
+.cp-dialog h2{margin:0}
+.cp-dialog header,.cp-dialog footer{width:auto;margin:0;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.cp-dialog header{background:#f1f5ec}
+.cp-dialog footer{border-top:1px solid var(--line);justify-content:flex-end}
+.cp-dialog-body{padding:14px 16px}
+.cp-editor{position:fixed;inset:0 0 0 auto;margin:0;width:min(100%,570px);max-width:none;height:100%;max-height:100%;border-radius:16px 0 0 16px}
+.cp-editor form{height:100%;display:flex;flex-direction:column}
+.cp-editor .cp-dialog-body{overflow:auto;flex:1}
+.cp-composer,.cp-schedule{margin-top:10px}
+.cp-composer label{margin-top:8px}
+.cp-schedule summary{display:flex;align-items:center;justify-content:space-between;min-height:37px;gap:5px;font-weight:700}
+.cp-schedule summary span{color:var(--muted);font-size:.8rem;font-variant-numeric:tabular-nums}
+@media(max-width:1160px){.campaign-brief{grid-template-columns:minmax(0,1fr)}.cp-summary{grid-row:1;position:static}.cp-summary p:last-child{display:none}}
+@media(max-width:760px){.cp-calendar-grid{grid-template-columns:minmax(0,1fr)}.cp-weekdays,.cp-pad,.cp-empty{display:none}.cp-day{min-height:auto}.cp-event{font-size:.82rem}.cp-timing button{width:100%}}
+@media(max-width:390px){.cp-goals{grid-template-columns:minmax(0,1fr)}.cp-editor{border-radius:0}}
