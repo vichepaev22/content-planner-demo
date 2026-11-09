@@ -92,7 +92,7 @@ export function mountCampaign({api,selectPanel,refreshQueue}) {
   let current=null, groups=[], view='brief', connected=false, ready=false, busy=false, loaded=false, epoch=0, selected=null;
   const readGoal=()=>document.querySelector('[name="cp-goal"]:checked').value;
   const matchGroup=id=>groups.find(group=>group.id===id);
-  const notice=(message,error=false)=>{ $('cp-status').textContent=message; $('cp-status').hidden=!message; $('cp-status').classList.toggle('cp-error',error); };
+  const notice=(message,error=false)=>{ $('cp-status').textContent=message; $('cp-status').hidden=!message; $('cp-status').classList.toggle('error',error); };
   const errorAt=(id,message)=>{ $(id).textContent=message; $(id).hidden=!message; };
   const active=requestEpoch=>connected&&epoch===requestEpoch;
   function setView(next,focus=false) {
@@ -103,7 +103,21 @@ export function mountCampaign({api,selectPanel,refreshQueue}) {
     $('campaign-title').textContent=next==='brief'?'Новый контент-план':next==='calendar'?'Календарь публикаций':'Публикации';
     $('cp-subtitle').textContent=next==='brief'?'Бриф, календарь и тексты для одного сообщества.'
       :countLabel(current.posts.length)+' · '+dateLabel(current.start)+' — '+dateLabel(current.end);
+    renderSummary();
     if (focus) $('campaign-title').focus({preventScroll:true});
+  }
+  function renderSummary() {
+    const duration = Number($('cp-duration').value);
+    const start = view === 'brief' ? $('cp-start').value : current.start;
+    const end = view === 'brief' && start ? moveDate(start, duration - 1) : current?.end;
+    const count = view === 'brief' ? Number($('cp-frequency').value) * duration : current.posts.length;
+    $('cp-count').textContent = loaded ? countLabel(count) : '—';
+    $('cp-range').hidden = !loaded || !start;
+    if (loaded && start) $('cp-range').textContent = dateLabel(start) + ' — ' + dateLabel(end);
+    $('cp-next').textContent = view === 'brief' ? 'Заполните бриф, чтобы получить календарь и тексты.'
+      : current.queueIds ? 'План в очереди. Там можно проверить статусы.'
+      : view === 'calendar' ? 'Проверьте темы, даты и время. Затем подтвердите календарь.'
+      : 'Проверьте тексты и передайте план в очередь.';
   }
   function controls() {
     const inQueue=Boolean(current?.queueIds);
@@ -151,13 +165,11 @@ export function mountCampaign({api,selectPanel,refreshQueue}) {
     updateForm();
   }
   function updateForm() {
-    const frequency=Number($('cp-frequency').value), duration=Number($('cp-duration').value);
+    const frequency=Number($('cp-frequency').value);
     const label=frequency===1?'Раз в день':frequency+' раза в день';
     syncFrequencySlider();
     $('cp-frequency-label').textContent=label; $('cp-frequency').setAttribute('aria-valuetext',label);
-    $('cp-count').textContent=countLabel(frequency*duration);
-    const start=$('cp-start').value;
-    $('cp-range').textContent=start?dateLabel(start)+' — '+dateLabel(moveDate(start,duration-1)):'Выберите дату начала.';
+    renderSummary();
     $('cp-group-link').textContent=matchGroup(Number($('cp-group').value))?.url??'На VPS пока нет настроенного сообщества.';
     $('cp-brief-hint').textContent=hints[readGoal()];
     $('cp-offer-end-field').hidden=readGoal()!=='promo'; $('cp-offer-end').required=readGoal()==='promo';
@@ -189,6 +201,7 @@ export function mountCampaign({api,selectPanel,refreshQueue}) {
   function paddingDays() { return (new Date(current.start+'T00:00:00Z').getUTCDay()+6)%7; }
   function renderPlan() {
     const {subject,goal,times,queueIds}=current;
+    renderSummary();
     $('cp-cover-title').textContent=subject;
     $('cp-cover-meta').textContent=names[goal]+' · '+matchGroup(current.groupId)?.name;
     $('cp-strategy').textContent=strategy[goal];

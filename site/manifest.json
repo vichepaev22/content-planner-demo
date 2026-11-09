@@ -1,16 +1,16 @@
 {
-  "version": "2026-11-09-r21-cabinet-and-home",
+  "version": "2026-11-09-r22-workspace-context",
   "mode": "ui-with-vkid",
   "files": [
     {
       "path": "index.html",
-      "bytes": 3871,
-      "sha256": "af22c292d13e01f9345056e2dc562a20f4a12b8cb144e7bfed2b6d80673f1061"
+      "bytes": 4827,
+      "sha256": "1268c5f73238c52ec15f350c026f1def4954b536f3bf943fa6ee950197e1909f"
     },
     {
       "path": "style.css",
-      "bytes": 3244,
-      "sha256": "284262a1e29fa83102e861e6e4d33606964ba45ca49ce75384962968ef676d1e"
+      "bytes": 4494,
+      "sha256": "544390a0c65d0100bad64224dcaa7223749b6b7e8ccdd76d07034978b43629a4"
     },
     {
       "path": "icon.svg",
@@ -139,18 +139,18 @@
     },
     {
       "path": "vk-vps/index.html",
-      "bytes": 25663,
-      "sha256": "0c34cfefd137b7315e815aee4119ed5d4fc08fd597ff6020c81729f0b406b846"
+      "bytes": 28873,
+      "sha256": "3125ec28b03ace996c46fa99a0559829638f177b194b439f37595b512fe43440"
     },
     {
       "path": "vk-vps/app.mjs",
-      "bytes": 29319,
-      "sha256": "5c34013424b59a17aaf39fff573a3632463ee30482892b0afae14bdae2879078"
+      "bytes": 33550,
+      "sha256": "3ed9ee8371eb218977a655bee05782717c36d97643ed793acfdbda88e74f138c"
     },
     {
       "path": "vk-vps/style.css",
-      "bytes": 14288,
-      "sha256": "ed732cae39ce83e0156c758727de385349d783b435fcfa279e19e9d98f433f0b"
+      "bytes": 16583,
+      "sha256": "d3b2ea6f2bbb5b76b2dc109472b35c0fe20694a1aac0869e13e90b3fece286f5"
     },
     {
       "path": "vk-vps/tab-session.mjs",
@@ -164,23 +164,23 @@
     },
     {
       "path": "vk-vps/campaign-workspace.mjs",
-      "bytes": 21564,
-      "sha256": "79840734f43b66b6ac18a736df75b4ac10adca9cff25c4255bd50836e9cc4d05"
+      "bytes": 22395,
+      "sha256": "f5597fdb654c8d2be7c356602b1ca452db016635419775b616a1b24c957cc609"
     },
     {
       "path": "vk-vps/campaign.css",
-      "bytes": 7478,
-      "sha256": "63c4a2388778607a71d3441dc881951f92464cdfd4ed11a8a592c71d6f99c74c"
+      "bytes": 6616,
+      "sha256": "c84ca542eda6c17801a6f3a59808fd41fb8adf5388c6f669276c48a9341ba9a9"
     },
     {
       "path": "vk-vps/outreach-workspace.mjs",
-      "bytes": 9037,
-      "sha256": "87ec335be795e6c66a0aeb0ef9d5960263ca8df8f8d1def64b6588a197da3c9b"
+      "bytes": 10004,
+      "sha256": "609cd389600d07072b10b711bb616277f71734fdc562084f0740594c4e2899c1"
     },
     {
       "path": "vk-vps/outreach.css",
-      "bytes": 4082,
-      "sha256": "107ae1adeb5daa4c6aced6f2805617c9558d34051f80f8b5334a8984185244c1"
+      "bytes": 3147,
+      "sha256": "98a02c7986836b7e3cf7da9c6b64f67e40efa6d8c9a51513a58ec1f4298d283b"
     }
   ]
 }

@@ -2,10 +2,8 @@
 #panel-campaign{min-width:0}
 .campaign-heading{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
 .campaign-heading p{margin-bottom:0}
-.campaign-status{padding:9px 12px;border:1px solid var(--line);background:var(--surface-quiet);border-radius:10px;font-size:.84rem;margin:0 0 13px}
-.cp-error,.campaign-status.cp-error{color:#843629;background:#fff2eb}
+.cp-error{color:#843629;background:#fff2eb}
 .cp-error{padding:7px 10px;border-radius:8px;font-size:.83rem}
-.campaign-brief{display:grid;grid-template-columns:minmax(0,1fr) clamp(235px,22vw,305px);gap:14px;align-items:start}
 #cp-form{display:grid;gap:10px;min-width:0}
 .cp-card{padding:15px;border:1px solid var(--line);border-radius:16px}
 .cp-card h2,.cp-calendar-head h2{font:700 1rem/1.25 system-ui,sans-serif;margin:0 0 10px}
@@ -38,9 +36,6 @@
 .cp-scale,.cp-timing,.cp-calendar-head,.cp-post-controls,.cp-actions{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
 .cp-scale{font-size:.71rem;color:var(--muted)}
 .cp-actions{justify-content:flex-end;margin-top:10px}
-.cp-summary{min-width:0;position:sticky;top:14px;padding:16px;border:1px solid #adc3ac;border-radius:15px;background:linear-gradient(145deg,#e5eddc,#fffdf7 57%);font-size:.82rem}
-.cp-summary strong{display:block;margin-top:4px;font:clamp(1.55rem,2.45vw,2.4rem)/1.05 Georgia,serif;text-wrap:balance;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
-.cp-summary p:not(.step){color:var(--muted);margin:8px 0 0}
 .cp-cover{position:relative;isolation:isolate;overflow:hidden;padding:18px 20px;border:1px solid #bad0b7;border-radius:16px;background:#e2ecd9}
 .cp-cover::after{content:"";position:absolute;z-index:-1;width:340px;height:150px;right:-30px;top:32px;border:1px solid #79a18799;border-radius:50%;box-shadow:0 10px 0 -1px #e2ecd9,0 11px 0 #79a18799,0 21px 0 -1px #e2ecd9,0 22px 0 #79a18799;rotate:-18deg}
 .cp-cover h2{margin:4px 0;font:clamp(1.85rem,3.5vw,2.75rem)/1.08 Georgia,serif;letter-spacing:-.032em;overflow-wrap:anywhere}
@@ -82,6 +77,5 @@
 .cp-composer label{margin-top:8px}
 .cp-schedule summary{display:flex;align-items:center;justify-content:space-between;min-height:37px;gap:5px;font-weight:700}
 .cp-schedule summary span{color:var(--muted);font-size:.8rem;font-variant-numeric:tabular-nums}
-@media(max-width:1040px){.campaign-brief{grid-template-columns:minmax(0,1fr)}.cp-summary{grid-row:1;position:static}.cp-summary p:last-child{display:none}}
-@media(max-width:760px){.cp-calendar-grid{grid-template-columns:minmax(0,1fr)}.cp-weekdays,.cp-pad,.cp-empty{display:none}.cp-day{min-height:auto}.cp-event{font-size:.82rem}.cp-timing button{width:100%}}
+@media(max-width:865px){.cp-calendar-grid{grid-template-columns:minmax(0,1fr)}.cp-weekdays,.cp-pad,.cp-empty{display:none}.cp-day{min-height:auto}.cp-event{font-size:.82rem}.cp-timing button{width:100%}}
 @media(max-width:390px){.cp-goals{grid-template-columns:minmax(0,1fr)}.cp-editor{border-radius:0}}

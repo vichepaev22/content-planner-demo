@@ -32,24 +32,39 @@ export function mountOutreach({api,selectPanel,refreshQueue}){
     for(let t=start;t<=end;t+=step)values.push(t);
     return values;
   }
-  function draw(){
+  function draw(rebuildTargets=true){
     const selected=targets.filter(target=>target.selected);
     const dates=localDates(),cadence=$('or-cadence').value;
     $('or-end-label').hidden=cadence==='once';
     $('or-preview-text').textContent=$('or-text').value.trim()||'Текст поста появится здесь.';
+    $('or-selected-count').textContent=selected.length;
+    $('or-target-count').textContent='Групп выбрано · ссылок ' + targets.length + ' из 5';
     $('or-wall-count').textContent=selected.filter(t=>t.route==='wall').length;
     $('or-suggest-count').textContent=selected.filter(t=>t.route==='suggest').length;
     $('or-date-count').textContent=dates.length;
-    $('or-date-summary').textContent=dates.length?dates.map(d=>formatDate(d,{day:'numeric',month:'short'})).join(' · ')+' в '+$('or-time').value:'Выберите даты и время отправки.';
+    const dateSummary=$('or-date-summary');
+    dateSummary.hidden=!dates.length;
+    if(dates.length){
+      const options={day:'numeric',month:'short'};
+      const first=formatDate(dates[0],options);
+      const period=dates.length===1?first:first+' — '+formatDate(dates.at(-1),options);
+      dateSummary.textContent=period+' · '+$('or-time').value+' (Екатеринбург)';
+    }
+    $('or-next').textContent=!targets.length?'Добавьте ссылку на сообщество.'
+      :!selected.length?'Проверьте доступ и выберите сообщества.'
+      :!$('or-text').value.trim()?'Добавьте текст поста.'
+      :!dates.length?'Выберите даты и время отправки.'
+      :'Проверьте рассылку перед отправкой. Модератор сам определяет время выхода предложенной записи.';
     $('or-access').textContent=ready?'Проверка ищет доступную кнопку в VK для вашего профиля.':'Подключите VK, чтобы проверить группы.';
     $('or-prepare').disabled=busy||!ready||!selected.length||!dates.length||!$('or-text').value.trim();
     $('or-review-send').disabled=busy||!ready||!review;
     $('or-review-close').disabled=busy;
+    if(!rebuildTargets)return;
     $('or-targets').replaceChildren(...targets.map(target=>{
       const row=element('li',null,'or-target'), select=element('input');
       select.type='checkbox';select.checked=target.selected;select.disabled=busy||!target.checkId;
       select.setAttribute('aria-label',target.name);
-      select.addEventListener('change',()=>{target.selected=select.checked;draw();});
+      select.addEventListener('change',()=>{target.selected=select.checked;draw(false);});
       const label=element('div');label.append(element('strong',target.name),element('small',target.link));
       const route=element('span',modes[target.route],'or-state '+target.route);
       const actions=element('div');
@@ -91,7 +106,7 @@ export function mountOutreach({api,selectPanel,refreshQueue}){
     targets.push(...fresh.map(link=>({link,name:new URL(link).pathname.slice(1),route:'unknown',checkId:null,selected:false})));
     $('or-links').value='';notice(fresh.length?'Теперь проверьте доступ для каждой группы.':'Эти группы уже добавлены.');draw();
   });
-  for(const id of ['or-text','or-cadence','or-start','or-end','or-time']) $(id).addEventListener('input',draw);
+  for(const id of ['or-text','or-cadence','or-start','or-end','or-time']) $(id).addEventListener('input',()=>draw(false));
   function clearImage(){
     if(previewUrl)URL.revokeObjectURL(previewUrl);
     previewUrl='';$('or-file').value='';$('or-preview-image').hidden=true;$('or-preview-image').removeAttribute('src');$('or-clear').hidden=true;

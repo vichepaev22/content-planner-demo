@@ -1,7 +1,7 @@
 import {saveTabSession,restoreTabSession,clearTabSession} from './tab-session.mjs';
 import { googleSheetCsvUrl, localPublicationTime, parseEditorialPlan, PLAN_MAX_BYTES } from './editorial-plan.mjs';
-import { mountOutreach } from './outreach-workspace.mjs';
-import { mountCampaign } from './campaign-workspace.mjs?v=r21';
+import { mountOutreach } from './outreach-workspace.mjs?v=r22';
+import { mountCampaign } from './campaign-workspace.mjs?v=r22';
 const tabStorage=(()=>{try{return sessionStorage;}catch{return null;}})();
 const $ = id => document.getElementById(id);
 const zone = 'Asia/Yekaterinburg';
@@ -12,6 +12,8 @@ let editorialRows = [], selectedRow = 0, planLoad = 0;
 const labels = { draft: 'Предпросмотр · не отправлено', approved: 'Утверждено · ожидает VPS', preparing: 'VPS заполняет редактор VK', sending: 'Отправка началась', published: 'VK подтвердил публикацию', scheduled: 'VK подтвердил приём в отложенные', submitted: 'Передано на модерацию', unknown: 'Результат неизвестен · проверьте VK', blocked: 'Остановлено до отправки', cancelled: 'Отменено до отправки' };
 const notify = (text, error = false) => {
   const notice = $('notice');
+  notice.dataset.panel = activePanel;
+  notice.hidden = false;
   if (notice.textContent !== text) notice.textContent = text;
   notice.classList.toggle('error', error);
 };
@@ -118,7 +120,12 @@ function renderQueue(connected, vkReady) {
     article.append(controls); $('jobs').append(article);
   }
 }
-function updateMode() { $('time-label').hidden = $('post-mode').value !== 'scheduled'; $('post-time').required = $('post-mode').value === 'scheduled'; }
+function updateMode() {
+  const scheduled = $('post-mode').value === 'scheduled';
+  $('time-label').hidden = !scheduled;
+  $('post-time').required = scheduled;
+  renderComposerContext();
+}
 function draftFromForm() { return { groupId: Number($('group').value), text: $('post-text').value, mode: $('post-mode').value, publishAt: $('post-mode').value === 'scheduled' ? $('post-time').value + ':00+05:00' : null }; }
 $('connect-form').addEventListener('submit', event => { event.preventDefault(); const password = $('owner-password').value; const nextOrigin = $('server-url').value.trim(); work(async () => {
   clearSession(); origin = endpoint(nextOrigin); const result = await api('/api/login', { password }); token = result.token; expiresAt = result.expiresAt; $('owner-password').value = '';
@@ -167,6 +174,7 @@ async function initializeConnected({ showConnections = false } = {}) {
 $('load-groups').addEventListener('click',()=>work(async()=>{await loadGroups();notify(`Сервер подтвердил сообществ: ${groups.length}.`);}));
 $('post-form').addEventListener('submit', event => { event.preventDefault(); work(async () => { const value = draftFromForm(), file = $('post-image').files[0]; if (file) { if (!['image/png','image/jpeg'].includes(file.type) || file.size > 5 * 1024 * 1024) throw new Error('Выберите PNG или JPEG до 5 МБ.'); const uploaded = await api('/api/media', file, false, file.type); value.mediaId = uploaded.media.id; } await api('/api/jobs', value); await refresh(); clearImage(); selectPanel('queue', true); notify('Предпросмотр сохранён на VPS. Проверьте группу, текст и время; отправка начнётся только после утверждения записи в очереди.'); }); });
 $('post-mode').addEventListener('change', updateMode);
+$('post-form').addEventListener('input', renderComposerContext);
 $('refresh').addEventListener('click', () => work(refresh));
 $('import-plan').addEventListener('click', () => work(async () => {
   const file = $('plan-file').files[0]; if (!file || file.size > 1024 * 1024) throw new Error('Выберите JSON-файл не больше 1 МБ.');
@@ -182,6 +190,16 @@ const requestedPanel = new URLSearchParams(location.search).get('section');
 const entryPanel = navigation.some(button => button.dataset.panel === requestedPanel) ? requestedPanel : 'campaign';
 let activePanel = entryPanel;
 const serverCard = $('server-card');
+const studio = $('studio');
+const studioBody = $('studio-body');
+const studioContext = $('studio-context');
+const compactContext = window.matchMedia('(max-width: 760px)');
+const placeContext = () => {
+  if (compactContext.matches) studioBody.before(studioContext);
+  else studioBody.after(studioContext);
+};
+compactContext.addEventListener('change', placeContext);
+placeContext();
 
 function selectPanel(panel, focus = false) {
   activePanel = panel;
@@ -190,16 +208,28 @@ function selectPanel(panel, focus = false) {
     if (selected) button.setAttribute('aria-current', 'page');
     else button.removeAttribute('aria-current');
     $(button.getAttribute('aria-controls')).hidden = !selected;
+    $('context-' + button.dataset.panel).hidden = !selected;
   }
-  if (focus) $('panel-' + panel).querySelector('h1').focus();
+  const notice = $('notice');
+  notice.hidden = !studio.hidden && notice.dataset.panel !== panel;
+  if (focus) {
+    const title = $('panel-' + panel).querySelector('h1');
+    const {top, bottom} = title.getBoundingClientRect();
+    if (top < 0 || bottom > innerHeight) studio.scrollIntoView({block: 'start'});
+    title.focus({preventScroll: true});
+  }
 }
 
 function renderWorkspace(connected, ready) {
   $('entry').hidden = connected;
-  $('studio').hidden = !connected;
+  studio.hidden = !connected;
   const slot = connected ? $('server-card-slot') : $('entry');
   if (serverCard.parentElement !== slot) slot.append(serverCard);
+  const notice = $('notice');
+  if (connected && notice.parentElement !== studioContext) studioContext.append(notice);
+  if (!connected && notice.previousElementSibling !== $('entry')) $('entry').after(notice);
   selectPanel(activePanel);
+  renderContext(connected);
   campaignUi.updateConnection(connected, ready);
   outreachUi.updateConnection(connected, Boolean(connected&&state?.browser.authenticated));
   renderVkIndicator(ready);
@@ -207,6 +237,48 @@ function renderWorkspace(connected, ready) {
   if (prepare) prepare.disabled = busy || !ready;
   const hint = $('editorial-vk-hint');
   if (hint) hint.hidden = ready;
+}
+
+function writeContext(id, value) {
+  const el = $(id);
+  const text = String(value);
+  if (el.textContent !== text) el.textContent = text;
+}
+
+function renderComposerContext() {
+  const textLength = $('post-text').value.length;
+  const hasPhoto = Boolean($('post-image').files.length);
+  const group = groups.find(item => String(item.id) === $('group').value);
+  const scheduled = $('post-mode').value === 'scheduled';
+  const time = scheduled ? $('post-time').value : '';
+  writeContext('composer-mode', scheduled ? 'По расписанию' : 'Сразу');
+  writeContext('composer-target', group?.name ?? 'Выберите сообщество.');
+  writeContext('composer-length', textLength.toLocaleString('ru-RU') + ' / 2 000');
+  writeContext('composer-photo', hasPhoto ? 'Добавлено' : '—');
+  writeContext('composer-next', !textLength ? 'Добавьте текст записи.' : scheduled && !time ? 'Укажите дату и время.'
+    : time ? new Date(time + ':00+05:00').toLocaleString('ru-RU', {timeZone: zone, day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'}) + ' · Екатеринбург'
+    : 'Создайте предпросмотр для утверждения.');
+}
+
+function renderContext(connected) {
+  renderComposerContext();
+  const count = status => jobs.filter(job => job.status === status).length;
+  const drafts = count('draft');
+  const review = count('unknown') + count('blocked');
+  writeContext('queue-count', jobs.length);
+  writeContext('queue-drafts', drafts);
+  writeContext('queue-active', count('approved') + count('preparing') + count('sending') + count('scheduled'));
+  writeContext('queue-published', count('published'));
+  writeContext('queue-submitted', count('submitted'));
+  writeContext('queue-next', review ? 'Требуют проверки: ' + review + '.' : drafts ? 'Проверьте и утвердите черновики.'
+    : jobs.length ? 'Откройте запись, чтобы проверить её статус.' : 'Создайте запись или добавьте план.');
+
+  const vkReady = connected && state?.browser.authenticated;
+  writeContext('connections-count', groups.length);
+  writeContext('connections-server', connected ? 'Подключён' : 'Ожидает входа');
+  writeContext('connections-vk', vkReady ? 'Подключён' : 'Ожидает входа');
+  writeContext('connections-next', groups.length ? 'Выберите сообщество при создании записи.'
+    : vkReady ? 'Ожидаем список доступных сообществ.' : 'Подтвердите вход в VK на сервере.');
 }
 
 function resetEditorialPlan() {
@@ -232,6 +304,9 @@ function renderEditorialRows(focusRow = false) {
   list.replaceChildren();
   preview.replaceChildren();
   $('plan-results').hidden = !editorialRows.length;
+  writeContext('plan-count', editorialRows.length);
+  writeContext('plan-next', editorialRows.length ? 'Выберите запись, чтобы проверить её и открыть в редакторе.'
+    : 'Загрузите CSV, чтобы увидеть текст, расписание и промпты из таблицы.');
   const focusPreview = focusRow && window.matchMedia('(max-width: 580px)').matches;
   for (const [index, post] of editorialRows.entries()) {
     const button = node('button', post.topic || 'Строка ' + post.number, 'editorial-row');
@@ -387,6 +462,6 @@ window.addEventListener('pageshow', event => {
 updateMode(); render();
 try {const target=endpoint($('server-url').value);const saved=restoreTabSession(tabStorage,target);if(saved){origin=saved.origin;token=saved.token;expiresAt=saved.expiresAt;await work(() => initializeConnected({ showConnections: true }));}}catch{clearTabSession(tabStorage);}
 
-function clearImage() { if (imagePreview) URL.revokeObjectURL(imagePreview); imagePreview = ''; $('post-image').value = ''; $('image-preview').hidden = true; $('image-preview').removeAttribute('src'); $('clear-image').hidden = true; }
-$('post-image').addEventListener('change', () => { if (imagePreview) URL.revokeObjectURL(imagePreview); imagePreview = ''; const file = $('post-image').files[0]; if (!file) { clearImage(); return; } if (!['image/png','image/jpeg'].includes(file.type) || file.size > 5 * 1024 * 1024) { clearImage(); notify('Выберите PNG или JPEG до 5 МБ.', true); return; } imagePreview = URL.createObjectURL(file); $('image-preview').src = imagePreview; $('image-preview').hidden = false; $('clear-image').hidden = false; });
+function clearImage() { if (imagePreview) URL.revokeObjectURL(imagePreview); imagePreview = ''; $('post-image').value = ''; $('image-preview').hidden = true; $('image-preview').removeAttribute('src'); $('clear-image').hidden = true; renderComposerContext(); }
+$('post-image').addEventListener('change', () => { if (imagePreview) URL.revokeObjectURL(imagePreview); imagePreview = ''; const file = $('post-image').files[0]; if (!file) { clearImage(); return; } if (!['image/png','image/jpeg'].includes(file.type) || file.size > 5 * 1024 * 1024) { clearImage(); notify('Выберите PNG или JPEG до 5 МБ.', true); return; } imagePreview = URL.createObjectURL(file); $('image-preview').src = imagePreview; $('image-preview').hidden = false; $('clear-image').hidden = false; renderComposerContext(); });
 $('clear-image').addEventListener('click', clearImage);

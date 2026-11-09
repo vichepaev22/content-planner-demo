@@ -17,6 +17,7 @@
 }
 
 * { box-sizing: border-box; }
+html { scrollbar-gutter: stable; }
 [hidden] { display: none !important; }
 
 body {
@@ -27,9 +28,9 @@ body {
 }
 
 header, main {
-  width: min(100%, 1240px);
+  width: min(100%, 116rem);
   margin-inline: auto;
-  padding-inline: clamp(14px, 3vw, 36px);
+  padding-inline: clamp(12px, 2vw, 32px);
 }
 
 header {
@@ -395,7 +396,7 @@ footer a { display: inline-flex; align-items: center; min-height: 44px; }
 .entry { width: min(100%, 470px); margin: clamp(12px, 7vh, 76px) auto 0; }
 .entry .card { margin-top: 20px; }
 .panel-heading { min-width: 0; margin-block-end: 16px; }
-.panel-heading h1, .studio-body .title-row h1 {
+.panel-heading h1 {
   margin: 4px 0 6px;
   font: clamp(28px, 4vw, 40px)/1.12 Georgia, serif;
   letter-spacing: -.025em;
@@ -405,11 +406,15 @@ footer a { display: inline-flex; align-items: center; min-height: 44px; }
 .entry:not([hidden]) + .notice { width: min(100%, 470px); margin: 14px auto 0; }
 .studio-shell {
   display: grid;
-  grid-template-columns: clamp(172px, 21vw, 232px) minmax(0, 1fr);
+  --form-measure: 48rem;
+  --sticky-top: 18px;
+  grid-template-columns: clamp(172px, 15vw, 232px) minmax(0, 1fr) clamp(224px, 17vw, 300px);
+  grid-template-areas: "nav body context";
   align-items: start;
-  gap: clamp(14px, 2vw, 28px);
+  gap: clamp(14px, 1.3vw, 26px);
 }
 .studio-sidebar {
+  grid-area: nav;
   display: flex;
   flex-direction: column;
   min-block-size: calc(100dvh - 68px - var(--workspace-top) - 18px);
@@ -418,7 +423,7 @@ footer a { display: inline-flex; align-items: center; min-height: 44px; }
   border-radius: var(--radius);
   background: var(--surface);
   position: sticky;
-  top: 18px;
+  top: var(--sticky-top);
 }
 .studio-sidebar > p { padding: 8px 9px; }
 .studio-sidebar nav { display: grid; gap: 4px; }
@@ -452,19 +457,73 @@ footer a { display: inline-flex; align-items: center; min-height: 44px; }
   color: var(--accent-hover);
 }
 .workspace-link svg { flex: none; }
-.studio-body { min-width: 0; max-inline-size: 88rem; }
-#panel-composer, #panel-connections, #panel-plan:not(:has(#plan-results:not([hidden]))) { max-inline-size: 48rem; }
-#panel-plan { max-inline-size: 72rem; }
-#panel-plan .plan-source { max-inline-size: 48rem; }
-#panel-campaign:has(#cp-brief:not([hidden])), #panel-outreach { max-inline-size: 67rem; }
-#panel-campaign:has(#cp-brief:not([hidden])) #cp-form { max-inline-size: 46rem; }
-#panel-campaign .cp-list, .editorial-copy, .job .copy { max-inline-size: 68ch; }
+.studio-body { grid-area: body; min-width: 0; }
+.studio-body > section { min-width: 0; }
+.workspace-heading {
+  padding: clamp(14px, 2vw, 22px);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  margin-bottom: 14px;
+}
+.workspace-heading h1 { margin-block: 2px 5px; }
+.workspace-heading p:last-child { margin: 0; color: var(--muted); }
+.workspace-heading h1:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+#post-form, .composer details, .sheet-link-form, .plan-upload, .connection form,
+.cp-card > label, .cp-goals, .cp-inline, .cp-slider, .cp-scale,
+.or-card > label, .or-inline { max-inline-size: var(--form-measure); }
+.studio-context {
+  grid-area: context;
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  position: sticky;
+  top: var(--sticky-top);
+  max-block-size: calc(100dvh - 2 * var(--sticky-top));
+  overflow: auto;
+  overscroll-behavior: contain;
+  overflow-anchor: none;
+}
+.context-card {
+  min-width: 0;
+  padding: clamp(13px, 1.35vw, 19px);
+  border: 1px solid #d3dfd1;
+  border-radius: 16px;
+  background: #f0f4eb;
+  color: var(--muted);
+  font-size: .83rem;
+  overflow-wrap: anywhere;
+}
+.context-card h2 { text-transform: uppercase; }
+.context-metric {
+  display: block;
+  margin: 5px 0 3px;
+  color: var(--ink);
+  font: clamp(1.55rem, 2vw, 2.18rem)/1.08 Georgia, serif;
+  letter-spacing: -.03em;
+  font-variant-numeric: tabular-nums;
+  text-wrap: balance;
+}
+.context-card p { margin: 3px 0 0; text-wrap: pretty; }
+.context-card .context-next {
+  margin-block-start: 10px;
+  padding-block-start: 8px;
+  border-block-start: 1px solid var(--line);
+}
+.context-stats { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; margin: 10px 0 0; }
+.context-stats dd { margin: 0; color: var(--ink); font-weight: 690; text-align: end; font-variant-numeric: tabular-nums; }
+.studio-context .notice { margin: 0; font-size: .78rem; }
+.context-card .context-message { margin-block-start: 9px; }
+.context-card #cp-reload { margin-block-start: 8px; }
+.context-preview { margin-block-start: 8px; }
+.context-preview summary { min-height: 44px; padding-block: 10px; cursor: pointer; color: var(--accent); font-weight: 650; }
+.context-preview img { margin-block-start: 8px; }
+#panel-campaign .cp-copy, .editorial-copy, .job .copy { max-inline-size: 68ch; }
 #panel-queue #jobs { display: grid; gap: 0 24px; }
-@media (min-width: 1160px) {
+@media (min-width: 1400px) {
   #panel-queue #jobs:has(.job + .job) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   #panel-queue .job:last-child { padding-block-end: 14px; }
 }
-.studio-body .connections { grid-template-columns: minmax(0, 1fr); }
+.studio-body .connections { grid-template-columns: minmax(0, 1fr); gap: 14px; }
 .studio-body .connections .panel-heading { margin-bottom: 0; }
 .plan-source h2, .plan-list h2 { margin-top: 0; }
 .plan-source { min-width: 0; }
@@ -493,14 +552,22 @@ footer a { display: inline-flex; align-items: center; min-height: 44px; }
 .editorial-preview { overflow-wrap: anywhere; }
 .editorial-preview h3 { margin-bottom: 6px; font-size: .9rem; }
 .editorial-copy { margin-top: 0; white-space: pre-wrap; text-wrap: pretty; }
-@media (max-width: 780px) {
-  .studio-shell { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 1080px) {
+  .studio-shell {
+    grid-template-columns: minmax(0, 1fr) clamp(206px, 27vw, 260px);
+    grid-template-areas: "nav nav" "body context";
+  }
   .studio-sidebar { position: static; min-block-size: 0; }
   .studio-sidebar > p { display: none; }
   .studio-sidebar nav { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .workspace-link { justify-content: center; }
   .sidebar-footer { padding-block-start: 7px; }
   .sidebar-footer .workspace-link { justify-content: start; }
+}
+@media (max-width: 760px) {
+  .studio-shell { grid-template-columns: minmax(0, 1fr); grid-template-areas: "nav" "context" "body"; }
+  .studio-context { position: static; max-block-size: none; overflow: visible; }
+  .context-metric { font-size: 1.55rem; }
 }
 @media (max-width: 580px) {
   .studio-sidebar { padding: 8px; }

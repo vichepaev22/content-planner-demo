@@ -1,4 +1,4 @@
-<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src https: http://localhost:4320; img-src 'self' blob:; base-uri 'none'; form-action 'none'"><title>Content Planner · Автопостинг на VPS</title><link rel="icon" href="../icon.svg"><link rel="stylesheet" href="style.css?v=r21"><link rel="stylesheet" href="campaign.css?v=r21"><link rel="stylesheet" href="outreach.css?v=r21"><script type="module" src="app.mjs?v=r21"></script></head><body>
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src https: http://localhost:4320; img-src 'self' blob:; base-uri 'none'; form-action 'none'"><title>Content Planner · Автопостинг на VPS</title><link rel="icon" href="../icon.svg"><link rel="stylesheet" href="style.css?v=r22"><link rel="stylesheet" href="campaign.css?v=r22"><link rel="stylesheet" href="outreach.css?v=r22"><script type="module" src="app.mjs?v=r22"></script></head><body>
 <header><a class="brand" href="../" aria-label="Content Planner, главная страница"><img src="../icon.svg" alt="" width="34" height="34"> Content Planner</a><div id="vk-indicator" class="vk-indicator" hidden><button id="vk-indicator-button" type="button" class="secondary" aria-expanded="false" aria-describedby="vk-tooltip"><span class="vk-dot" aria-hidden="true"></span> VK подключён</button><span id="vk-tooltip" class="vk-tooltip" role="tooltip">Сообщества загружены. Можно создавать публикации.</span><span id="vk-feedback" class="vk-feedback" role="status" hidden>Готово · VK подключён</span></div></header>
 <main class="planner-main" id="main-content"><div id="entry" class="entry"><div class="panel-heading"><p class="eyebrow">ВАШ КАБИНЕТ</p><h1>Вход в Content Planner</h1><p>Подключитесь к своему серверу, чтобы работать с планом и очередью VK.</p></div><section id="server-card" class="card connection"><div class="connection-top"><div><p class="step">01 / СЕРВЕР</p><h2 id="server-title">Подключить VPS</h2></div></div><form id="connect-form"><label>HTTPS-адрес API<input id="server-url" type="url" placeholder="https://31.76.80.185/content-planner-api" required autocomplete="url"></label><label>Пароль владельца Content Planner<input id="owner-password" type="password" minlength="12" required autocomplete="off"></label><p class="hint">Это отдельный пароль вашего сервера. Пароль от VK сюда вводить не нужно. Сеанс восстанавливается в этой вкладке до 8 часов. Пароль не сохраняется.</p><button id="connect" type="submit">Подключить сервер</button></form><p id="server-status" class="hint">Подключения пока нет.</p></section></div>
 <div id="notice" class="notice" role="status"></div>
@@ -12,7 +12,7 @@
 <div id="studio-body" class="studio-body">
 <section id="panel-outreach" hidden aria-labelledby="outreach-title">
 <div class="card panel-heading workspace-heading"><p class="eyebrow">РАЗМЕЩЕНИЕ В СООБЩЕСТВАХ VK</p><h1 id="outreach-title" tabindex="-1">Новая рассылка</h1><p>Подготовьте пост и выберите сообщества, где его можно разместить.</p></div>
-<div class="or-workspace"><div class="or-flow">
+<div class="or-flow">
 <section class="card or-card"><div class="or-head"><span>01</span><div><h2>Куда отправить</h2><p class="hint">Добавьте до пяти ссылок и проверьте доступ из вашего VK.</p></div></div>
 <form id="or-add" class="or-inline"><label>Ссылки на сообщества<input id="or-links" placeholder="https://vk.ru/название_группы" maxlength="1250" required></label><button class="secondary" type="submit">Добавить ссылки</button></form>
 <ul id="or-targets" class="or-targets"></ul><p id="or-access" class="hint"></p></section>
@@ -21,16 +21,12 @@
 <section class="card or-card"><div class="or-head"><span>03</span><div><h2>Когда отправить</h2><p class="hint">Екатеринбург · UTC+5</p></div></div>
 <div class="or-inline or-time"><label>Периодичность<select id="or-cadence"><option value="once">Один раз</option><option value="weekly">Раз в неделю</option><option value="fortnight">Раз в две недели</option></select></label><label>Первая отправка<input id="or-start" type="date"></label><label>Время<input id="or-time" type="time" value="19:00"></label></div><label id="or-end-label" hidden>Повторять до<input id="or-end" type="date"></label></section>
 <div class="or-actions"><button id="or-prepare" type="button" disabled>Проверить и запланировать →</button><button id="or-queue" class="secondary" type="button" hidden>Открыть очередь</button></div>
-<p id="or-status" class="notice" role="status" hidden></p></div>
-<aside class="or-preview"><section class="card or-card"><h2>Предпросмотр поста</h2><p class="hint">Ваш профиль VK</p><p id="or-preview-text" class="or-copy"></p><img id="or-preview-image" alt="Фотография к записи" hidden></section>
-<section class="card or-card"><h2>Итог рассылки</h2><dl><dt>На стену</dt><dd id="or-wall-count">0</dd><dt>На модерацию</dt><dd id="or-suggest-count">0</dd><dt>Даты отправок</dt><dd id="or-date-count">0</dd></dl><p id="or-date-summary" class="hint"></p><p class="hint">Для предложенных записей время выхода определяет редактор сообщества.</p></section></aside></div>
+</div>
 <dialog class="cp-dialog" id="or-review" aria-labelledby="or-review-title"><div class="cp-dialog-body"><h2 id="or-review-title">Проверить рассылку</h2><p id="or-review-dates"></p><ul id="or-review-targets"></ul><p class="hint">После утверждения рассылка появится в очереди VPS. Пока отправка не началась, запись можно отменить.</p><p id="or-review-error" class="cp-error" role="alert" hidden></p></div><footer><button id="or-review-close" class="secondary" type="button">Вернуться</button><button id="or-review-send" type="button">Утвердить рассылку</button></footer></dialog>
 </section>
 <section id="panel-campaign" hidden aria-labelledby="campaign-title">
 <div class="card panel-heading campaign-heading workspace-heading"><div><p class="eyebrow">ПЛАНИРОВАНИЕ · VK</p><h1 id="campaign-title" tabindex="-1">Новый контент-план</h1><p id="cp-subtitle">Бриф, календарь и тексты для одного сообщества.</p></div><button class="secondary" id="cp-return" type="button" hidden></button></div>
-<p id="cp-status" class="campaign-status" role="status">Загружаем план с VPS…</p>
-<button class="secondary" id="cp-reload" type="button" hidden>Обновить план с сервера</button>
-<div id="cp-brief" hidden class="campaign-brief">
+<div id="cp-brief" hidden>
 <form id="cp-form">
   <section class="card cp-card"><h2>01. Что планируем?</h2><div class="cp-goals" role="radiogroup" aria-label="Цель плана">
   <label><input type="radio" name="cp-goal" value="launch" checked><span>Запуск новой услуги<small>Объяснить, для кого она и как начать</small></span></label>
@@ -42,7 +38,6 @@
   <section class="card cp-card"><h2>04. Короткий бриф</h2><label>Услуга, товар или тема<input id="cp-subject" maxlength="90" required></label><label>Задача и аудитория<textarea id="cp-details" maxlength="2400" rows="3" required></textarea></label><p class="hint" id="cp-brief-hint"></p><label>Условия, которые можно публиковать <span class="hint">· необязательно</span><textarea id="cp-conditions" maxlength="420" rows="2" placeholder="Например, срок предложения, что входит в абонемент и кому он доступен"></textarea></label><label id="cp-offer-end-field" hidden>Акция действует до<input id="cp-offer-end" type="date"></label><label>Как обратиться <span class="hint">· необязательно</span><input id="cp-cta" maxlength="180" placeholder="Например, напишите «АБОНЕМЕНТ» в сообщения VK"></label></section>
   <div class="cp-actions"><button id="cp-generate" type="submit">Создать календарь →</button></div>
 </form>
-<aside class="cp-summary"><p class="step">ВАШ ПЛАН</p><strong id="cp-count"></strong><p id="cp-range"></p><p>Сначала проверьте календарь. Тексты будут подготовлены по редакционным шаблонам и доступны для правки.</p></aside>
 </div>
 <div id="cp-calendar" hidden>
   <div class="cp-cover"><p class="step">ПЛАН ПУБЛИКАЦИЙ · VK</p><h2 id="cp-cover-title"></h2><p id="cp-cover-meta"></p></div>
@@ -66,7 +61,7 @@
 <dialog class="cp-dialog" id="cp-time-dialog" aria-labelledby="cp-time-title"><form id="cp-time-form"><div class="cp-dialog-body"><h2 id="cp-time-title">Время для всего плана</h2><p class="hint">Индивидуальные правки времени сохранятся.</p><div id="cp-time-fields" class="cp-inline"></div><p id="cp-time-error" class="cp-error" role="alert" hidden></p></div><footer><button type="button" class="secondary" data-cp-close="cp-time-dialog">Отмена</button><button id="cp-time-save" type="submit">Применить</button></footer></form></dialog>
 <dialog class="cp-dialog" id="cp-queue-dialog" aria-labelledby="cp-queue-title"><form id="cp-queue-form"><div class="cp-dialog-body"><h2 id="cp-queue-title">Передать план в очередь?</h2><p id="cp-queue-summary"></p><p class="hint">VPS передаст записи в VK по мере приближения дат. Записи в очереди можно отменить до начала отправки.</p><p id="cp-queue-error" class="cp-error" role="alert" hidden></p></div><footer><button type="button" class="secondary" data-cp-close="cp-queue-dialog">Ещё проверить</button><button id="cp-queue-send" type="submit">Утвердить план</button></footer></form></dialog>
 </section>
-<section id="panel-plan" class="plan-panel" aria-labelledby="plan-title">
+<section id="panel-plan" class="plan-panel" aria-labelledby="plan-title" hidden>
 <div class="card panel-heading workspace-heading"><p class="eyebrow">РЕДАКЦИЯ</p><h1 id="plan-title" tabindex="-1">Контент-план</h1><p>Загрузите план и выберите запись, с которой хотите начать.</p></div>
 <div class="card plan-source"><h2>Загрузить таблицу</h2><p class="hint">Вставьте ссылку на нужный лист Google Таблиц, скачайте CSV и выберите файл ниже.</p>
 <form id="sheet-link-form" class="sheet-link-form"><label>Ссылка на Google Таблицу<input id="sheet-link" type="url" required placeholder="https://docs.google.com/spreadsheets/…"></label><button class="secondary" type="submit">Подготовить ссылку</button></form>
@@ -75,9 +70,57 @@
 <p id="plan-feedback" class="hint plan-feedback" role="status">В первой строке укажите «Тема» или «Текст поста». Можно добавить дату, время, цель, формат и промпт.</p></div>
 <div id="plan-results" class="plan-results" hidden><div class="card plan-list"><h2>Записи</h2><ul id="editorial-rows" class="editorial-rows"></ul></div><section id="editorial-preview" class="card editorial-preview" aria-label="Предпросмотр записи"></section></div>
 </section>
-<section id="panel-connections" class="connections" aria-labelledby="connections-title" hidden><div class="card panel-heading workspace-heading"><p class="eyebrow">НАСТРОЙКИ</p><h1 id="connections-title" tabindex="-1">Подключения</h1></div><div id="server-card-slot"></div>
+<section id="panel-connections" class="connections" aria-labelledby="connections-title" hidden><div class="card panel-heading workspace-heading"><p class="eyebrow">НАСТРОЙКИ</p><h1 id="connections-title" tabindex="-1">Подключения</h1><p>Сервер, учётная запись VK и доступ к сообществам.</p></div><div id="server-card-slot"></div>
 <section class="card connection"><p class="step">02 / УЧЁТНАЯ ЗАПИСЬ</p><h2>VK на сервере</h2><p id="vk-status">После входа VK и сообщества подключатся автоматически.</p><div class="actions"><button id="start-browser" type="button" disabled>Открыть VK на VPS</button><button id="show-qr" class="secondary" type="button" disabled>Обновить экран входа</button></div><p class="hint vk-login-hint">Войдите через QR-код и приложение VK на телефоне. Подтверждения безопасности выполняет владелец. Сеанс остаётся в защищённом каталоге VPS.</p><form id="vk-code-form" hidden><label>Код VK с телефона<input id="vk-login-code" type="password" inputmode="numeric" minlength="4" maxlength="8" pattern="[0-9]{4,8}" autocomplete="off" required></label><p class="hint">Введите код сами. Он передаётся только вашему VPS и VK, не сохраняется в очереди и журналах. Пароль VK не вводите.</p><button id="submit-vk-code" type="submit">Подтвердить код в VK</button></form><button id="enlarge-auth" type="button" class="secondary" hidden>Увеличить экран VK</button><img id="auth-screen" alt="Текущий экран входа VK на вашем VPS" hidden><p id="auth-hint" class="hint" hidden>Экран передаётся с вашего VPS только в текущий сеанс и не сохраняется в публичном репозитории.</p></section></section>
-<section id="panel-composer" class="card composer" hidden><div class="title-row"><div><p class="step">03 / ЗАПИСЬ</p><h1 tabindex="-1">Создать публикацию</h1></div><button id="load-groups" class="secondary" type="button" disabled>Проверить сообщества</button></div><p class="hint">Показываются сообщества, настроенные на VPS и проверенные в учётной записи VK.</p><form id="post-form"><label>Сообщество<select id="group" required disabled><option value="">Сначала подключите сервер и проверьте VK</option></select></label><label>Текст<textarea id="post-text" rows="5" maxlength="2000" required disabled placeholder="Ваш текст публикации"></textarea></label><label>Картинка <span class="hint">необязательно · PNG/JPEG до 5 МБ</span><input id="post-image" type="file" accept="image/png,image/jpeg,.png,.jpg,.jpeg" disabled></label><img id="image-preview" class="post-image" alt="Выбранная картинка для публикации" hidden><button id="clear-image" type="button" class="secondary" hidden>Убрать картинку</button><div class="form-row"><label>Когда публиковать<select id="post-mode" disabled><option value="now">Сразу после подтверждения</option><option value="scheduled">В заданное время</option></select></label><label id="time-label" hidden>Дата и время<input id="post-time" type="datetime-local"></label></div><div class="form-actions"><p class="hint time">Екатеринбург, UTC+5. Отложка от 2 минут до 7 дней.</p><button id="prepare-post" type="submit" disabled>Создать предпросмотр</button><p class="hint">Запись отправится после утверждения в очереди.</p></div></form><details><summary>Импорт готового контент-плана</summary><p class="hint">JSON-массив до 100 записей: text, mode, publishAt. publishAt указывают с часовым поясом, например 2026-11-06T15:00:00+05:00. Записи импортируются как черновики и требуют отдельного утверждения.</p><input id="plan-file" type="file" accept="application/json,.json" disabled><button id="import-plan" class="secondary" type="button" disabled>Импортировать черновики</button><p id="import-status" class="hint"></p></details></section>
-<section id="panel-queue" class="card queue" hidden><div class="title-row"><div><p class="step">04 / КОНТРОЛЬ</p><h1 tabindex="-1">Очередь публикаций</h1></div><button id="refresh" class="secondary" type="button" disabled>Обновить</button></div><p class="hint">Здесь можно проверить статус записи и открыть её в VK.</p><div id="jobs"><p class="empty">После подключения здесь появятся реальные записи вашего сервера.</p></div></section>
-</div></div>
+<section id="panel-composer" aria-labelledby="composer-title" hidden><div class="card panel-heading workspace-heading title-row"><div><p class="step">03 / ЗАПИСЬ</p><h1 id="composer-title" tabindex="-1">Создать публикацию</h1><p>Подготовьте текст, фото и время публикации.</p></div><button id="load-groups" class="secondary" type="button" disabled>Проверить сообщества</button></div><div class="card composer"><p class="hint">Показываются сообщества, настроенные на VPS и проверенные в учётной записи VK.</p><form id="post-form"><label>Сообщество<select id="group" required disabled><option value="">Сначала подключите сервер и проверьте VK</option></select></label><label>Текст<textarea id="post-text" rows="5" maxlength="2000" required disabled placeholder="Ваш текст публикации"></textarea></label><label>Картинка <span class="hint">необязательно · PNG/JPEG до 5 МБ</span><input id="post-image" type="file" accept="image/png,image/jpeg,.png,.jpg,.jpeg" disabled></label><img id="image-preview" class="post-image" alt="Выбранная картинка для публикации" hidden><button id="clear-image" type="button" class="secondary" hidden>Убрать картинку</button><div class="form-row"><label>Когда публиковать<select id="post-mode" disabled><option value="now">Сразу после подтверждения</option><option value="scheduled">В заданное время</option></select></label><label id="time-label" hidden>Дата и время<input id="post-time" type="datetime-local"></label></div><div class="form-actions"><p class="hint time">Екатеринбург, UTC+5. Отложка от 2 минут до 7 дней.</p><button id="prepare-post" type="submit" disabled>Создать предпросмотр</button><p class="hint">Запись отправится после утверждения в очереди.</p></div></form><details><summary>Импорт готового контент-плана</summary><p class="hint">JSON-массив до 100 записей: text, mode, publishAt. publishAt указывают с часовым поясом, например 2026-11-06T15:00:00+05:00. Записи импортируются как черновики и требуют отдельного утверждения.</p><input id="plan-file" type="file" accept="application/json,.json" disabled><button id="import-plan" class="secondary" type="button" disabled>Импортировать черновики</button><p id="import-status" class="hint"></p></details></div></section>
+<section id="panel-queue" aria-labelledby="queue-title" hidden><div class="card panel-heading workspace-heading title-row"><div><p class="step">04 / КОНТРОЛЬ</p><h1 id="queue-title" tabindex="-1">Очередь публикаций</h1><p>Проверяйте записи от предпросмотра до публикации.</p></div><button id="refresh" class="secondary" type="button" disabled>Обновить</button></div><div class="card queue"><p class="hint">Здесь можно проверить статус записи и открыть её в VK.</p><div id="jobs"><p class="empty">После подключения здесь появятся реальные записи вашего сервера.</p></div></div></section>
+</div>
+<aside id="studio-context" class="studio-context" aria-label="Сводка текущего раздела">
+  <section id="context-campaign" class="context-card" aria-labelledby="context-campaign-title" hidden>
+    <h2 class="step" id="context-campaign-title">Ваш план</h2>
+    <strong class="context-metric" id="cp-count">—</strong>
+    <p id="cp-range" hidden></p>
+    <p id="cp-next" class="context-next">Выберите цель и период плана.</p>
+    <p id="cp-status" class="notice context-message" role="status" hidden></p>
+    <button class="secondary" id="cp-reload" type="button" hidden>Обновить план с сервера</button>
+  </section>
+  <section id="context-plan" class="context-card" aria-labelledby="context-plan-title" hidden>
+    <h2 class="step" id="context-plan-title">Ваш импорт</h2>
+    <strong class="context-metric" id="plan-count">0</strong>
+    <p>Записей в таблице</p>
+    <p class="context-next" id="plan-next">Загрузите CSV, чтобы увидеть текст, расписание и промпты из таблицы.</p>
+  </section>
+  <section id="context-composer" class="context-card" aria-labelledby="context-composer-title" hidden>
+    <h2 class="step" id="context-composer-title">Ваша запись</h2>
+    <strong class="context-metric" id="composer-mode">Сразу</strong>
+    <p id="composer-target">Выберите сообщество.</p>
+    <dl class="context-stats"><dt>Символов</dt><dd id="composer-length">0 / 2 000</dd><dt>Фото</dt><dd id="composer-photo">—</dd></dl>
+    <p class="context-next" id="composer-next">Добавьте текст записи.</p>
+  </section>
+  <section id="context-queue" class="context-card" aria-labelledby="context-queue-title" hidden>
+    <h2 class="step" id="context-queue-title">Ваша очередь</h2>
+    <strong class="context-metric" id="queue-count">0</strong>
+    <p>Записей в очереди</p>
+    <dl class="context-stats"><dt>Ждут утверждения</dt><dd id="queue-drafts">0</dd><dt>В работе и отложены</dt><dd id="queue-active">0</dd><dt>Опубликованы</dt><dd id="queue-published">0</dd><dt>На модерации</dt><dd id="queue-submitted">0</dd></dl>
+    <p class="context-next" id="queue-next">Создайте запись или добавьте план.</p>
+  </section>
+  <section id="context-outreach" class="context-card" aria-labelledby="context-outreach-title" hidden>
+    <h2 class="step" id="context-outreach-title">Ваша рассылка</h2>
+    <strong class="context-metric" id="or-selected-count">0</strong>
+    <p id="or-target-count">Групп выбрано · ссылок 0 из 5</p>
+    <dl class="context-stats"><dt>На стену</dt><dd id="or-wall-count">0</dd><dt>На модерацию</dt><dd id="or-suggest-count">0</dd><dt>Дат отправки</dt><dd id="or-date-count">0</dd></dl>
+    <p id="or-date-summary" hidden></p>
+    <p class="context-next" id="or-next">Добавьте ссылку на сообщество.</p>
+    <p id="or-status" class="notice context-message" role="status" hidden></p>
+    <details class="context-preview"><summary>Предпросмотр поста</summary><p id="or-preview-text" class="or-copy"></p><img id="or-preview-image" alt="Фотография к записи" hidden></details>
+  </section>
+  <section id="context-connections" class="context-card" aria-labelledby="context-connections-title" hidden>
+    <h2 class="step" id="context-connections-title">Подключения</h2>
+    <strong class="context-metric" id="connections-count">0</strong>
+    <p>Доступных сообществ</p>
+    <dl class="context-stats"><dt>Ваш сервер</dt><dd id="connections-server">Ожидает входа</dd><dt>ВКонтакте</dt><dd id="connections-vk">Ожидает входа</dd></dl>
+    <p class="context-next" id="connections-next">После входа сюда загрузятся доступные сообщества.</p>
+  </section>
+</aside>
+</div>
 </main><dialog id="auth-dialog"><button id="close-auth" type="button">Закрыть экран</button><img id="auth-large" alt="Увеличенный экран входа VK на VPS"></dialog></body></html>
