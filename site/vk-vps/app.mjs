@@ -1,5 +1,6 @@
 import {saveTabSession,restoreTabSession,clearTabSession} from './tab-session.mjs';
 import { googleSheetCsvUrl, localPublicationTime, parseEditorialPlan, PLAN_MAX_BYTES } from './editorial-plan.mjs';
+import { mountOutreach } from './outreach-workspace.mjs';
 import { mountCampaign } from './campaign-workspace.mjs';
 const tabStorage=(()=>{try{return sessionStorage;}catch{return null;}})();
 const $ = id => document.getElementById(id);
@@ -8,7 +9,7 @@ let imagePreview = ''; const mediaUrls = new Map(), mediaLoads = new Map();
 let origin = '', token = '', expiresAt = 0, groups = [], jobs = [], state, busy = false, screenshotUrl = '';
 let renderedQueue = '';
 let activePanel = 'campaign', editorialRows = [], selectedRow = 0, planLoad = 0;
-const labels = { draft: 'Предпросмотр · не отправлено', approved: 'Утверждено · ожидает VPS', preparing: 'VPS заполняет редактор VK', sending: 'Отправка началась', published: 'VK подтвердил публикацию', scheduled: 'VK подтвердил приём в отложенные', unknown: 'Результат неизвестен · проверьте VK', blocked: 'Остановлено до отправки', cancelled: 'Отменено до отправки' };
+const labels = { draft: 'Предпросмотр · не отправлено', approved: 'Утверждено · ожидает VPS', preparing: 'VPS заполняет редактор VK', sending: 'Отправка началась', published: 'VK подтвердил публикацию', scheduled: 'VK подтвердил приём в отложенные', submitted: 'Передано на модерацию', unknown: 'Результат неизвестен · проверьте VK', blocked: 'Остановлено до отправки', cancelled: 'Отменено до отправки' };
 const notify = (text, error = false) => {
   const notice = $('notice');
   if (notice.textContent !== text) notice.textContent = text;
@@ -70,8 +71,8 @@ function renderQueue(connected, vkReady) {
   for (const j of [...jobs].reverse()) {
     const article = node('article', null, 'job'), g = groups.find(g => g.id === j.groupId);
     const heading = node('div', null, 'job-heading');
-    heading.append(node('h3', g?.name ?? 'Сообщество ' + j.groupId),
-      node('span', j.campaignId && j.status==='approved' ? (Date.parse(j.publishAt)>Date.now()+7*86400000 ? 'Ожидает окна VK' : vkReady ? 'Утверждено · ожидает VPS' : 'Ожидает подключения VK') : labels[j.status] ?? j.status, 'state ' + j.status));
+    heading.append(node('h3', j.outreach?.name ?? g?.name ?? 'Сообщество ' + j.groupId),
+      node('span', j.outreach && j.status==='approved' ? (j.outreach.route==='suggest'?'Ожидает отправки на модерацию':'Ожидает отправки на стену') : j.campaignId && j.status==='approved' ? (Date.parse(j.publishAt)>Date.now()+7*86400000 ? 'Ожидает окна VK' : vkReady ? 'Утверждено · ожидает VPS' : 'Ожидает подключения VK') : labels[j.status] ?? j.status, 'state ' + j.status));
     const timing = j.publishAt
       ? 'По плану: ' + new Date(j.publishAt).toLocaleString('ru-RU', { timeZone: zone }) + ' · Екатеринбург'
       : 'Сразу после утверждения и проверки VPS.';
@@ -115,7 +116,7 @@ async function screen() { const blob = await api('/api/browser/screenshot', unde
 $('show-qr').addEventListener('click', () => work(async () => { await api('/api/browser/qr', {}); await screen(); await refresh(); }));
 $('enlarge-auth').addEventListener('click', () => $('auth-dialog').showModal());
 $('close-auth').addEventListener('click', () => $('auth-dialog').close());
-$('vk-code-form').addEventListener('submit', event => { event.preventDefault(); const challengeId = state?.browser.authChallenge?.id; let code = $('vk-login-code').value; $('vk-login-code').value = ''; work(async () => { try { await api('/api/browser/code', { code, challengeId }); code = ''; await refresh(); if (!state.browser.authenticated) await screen(); else await loadGroups(); notify(state.browser.authenticated ? 'VK подключён, сообщества загружены.' : 'Код передан в VK. Обновите состояние и проверьте результат входа.'); } finally { code = ''; } }); });
+$('vk-code-form').addEventListener('submit', event => { event.preventDefault(); const challengeId = state?.browser.authChallenge?.id; let code = $('vk-login-code').value; $('vk-login-code').value = ''; work(async () => { try { await api('/api/browser/code', { code, challengeId }); code = ''; await refresh(); if (!state.browser.authenticated) await screen(); else await loadGroups(); notify(state.browser.authenticated ? '' : 'Код передан в VK. Обновите состояние и проверьте результат входа.'); } finally { code = ''; } }); });
 async function loadGroups() {
   const result=await api('/api/groups');groups=result.groups;
   $('group').replaceChildren();for(const g of groups){const option=node('option',g.name);option.value=g.id;$('group').append(option);}
@@ -129,7 +130,7 @@ async function initializeConnected({ showConnections = false } = {}) {
     await refresh();if(state.browser.authenticated)break;
     await new Promise(resolve=>setTimeout(resolve,750));
   }
-  if(state.browser.authenticated){await loadGroups();notify('Готово: VK подключён, сообщества загружены. Можно создавать публикации.');}
+  if(state.browser.authenticated){await loadGroups();notify('');}
   else {
     if (showConnections && ['plan','campaign'].includes(activePanel)) selectPanel('connections', true);
     await screen();
@@ -170,6 +171,8 @@ function renderWorkspace(connected, ready) {
   if (serverCard.parentElement !== slot) slot.append(serverCard);
   selectPanel(activePanel);
   campaignUi.updateConnection(connected, ready);
+  outreachUi.updateConnection(connected, Boolean(connected&&state?.browser.authenticated));
+  renderVkIndicator(ready);
   const prepare = $('prepare-editorial-post');
   if (prepare) prepare.disabled = busy || !ready;
   const hint = $('editorial-vk-hint');
@@ -286,6 +289,44 @@ $('editorial-file').addEventListener('change', async () => {
   }
 });
 
+const vkIndicator=$('vk-indicator'),vkStatus=$('vk-indicator-button'),vkFeedback=$('vk-feedback');
+let vkWasReady=false,vkFeedbackTimer;
+function closeVkTooltip(dismiss=false) {
+  delete vkIndicator.dataset.open;
+  vkStatus.setAttribute('aria-expanded','false');
+  if(dismiss)vkIndicator.dataset.dismissed='';
+}
+vkStatus.addEventListener('click',()=>{
+  const opened=vkIndicator.hasAttribute('data-open');
+  if(opened)closeVkTooltip(true);
+  else {
+    delete vkIndicator.dataset.dismissed;
+    vkIndicator.dataset.open='';
+    vkStatus.setAttribute('aria-expanded','true');
+    vkFeedback.hidden=true;
+  }
+});
+vkIndicator.addEventListener('pointerenter',()=>delete vkIndicator.dataset.dismissed);
+vkStatus.addEventListener('focus',()=>delete vkIndicator.dataset.dismissed);
+document.addEventListener('keydown',event=>{
+  if(event.key==='Escape'&&!vkIndicator.hidden) {closeVkTooltip(true);vkFeedback.hidden=true;}
+});
+document.addEventListener('pointerdown',event=>{if(!vkIndicator.contains(event.target))closeVkTooltip();});
+function renderVkIndicator(ready) {
+  vkIndicator.hidden=!ready;
+  if(ready&&!vkWasReady) {
+    vkFeedback.hidden=false;
+    clearTimeout(vkFeedbackTimer);
+    vkFeedbackTimer=setTimeout(()=>{vkFeedback.hidden=true;},3200);
+  } else if(!ready) {
+    clearTimeout(vkFeedbackTimer);
+    vkFeedback.hidden=true;
+    closeVkTooltip();
+  }
+  vkWasReady=ready;
+}
+
+const outreachUi=mountOutreach({api,selectPanel,refreshQueue:refresh});
 const campaignUi=mountCampaign({api,selectPanel,refreshQueue:refresh});
 try { $('server-url').value = localStorage.getItem('content-planner:vps-origin') || 'https://31.76.80.185/content-planner-api'; } catch {}
 function initialPublicationTime() {

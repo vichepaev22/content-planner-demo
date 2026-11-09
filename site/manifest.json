@@ -1,5 +1,5 @@
 {
-  "version": "2026-11-09-r19-campaign-workspace",
+  "version": "2026-11-09-r20-outreach-and-layout",
   "mode": "ui-with-vkid",
   "files": [
     {
@@ -139,13 +139,13 @@
     },
     {
       "path": "vk-vps/index.html",
-      "bytes": 20004,
-      "sha256": "408ea3d0b66bc830f0908f68460f093a8aa407cb94251f128aa56ce3ed1978fb"
+      "bytes": 25121,
+      "sha256": "3e046911dbc526302d3a98716bab062c647f71e31ed648973d01425eed667ed4"
     },
     {
       "path": "vk-vps/app.mjs",
-      "bytes": 26751,
-      "sha256": "d74d69c201b033331707ed64c4e2e35e80bdf7d7d3e57df5f92f0ba87e9a5175"
+      "bytes": 28448,
+      "sha256": "662b52e4113d45248e984cf9e9bb5106216bacf695fd2784d093cd721385e6d4"
     },
     {
       "path": "vk-vps/style.css",
@@ -171,6 +171,16 @@
       "path": "vk-vps/campaign.css",
       "bytes": 6321,
       "sha256": "723055ee779b6ab703f62bab8e6d58c1e4c7dd6bcd529630fc3794988969b1e1"
+    },
+    {
+      "path": "vk-vps/outreach-workspace.mjs",
+      "bytes": 9037,
+      "sha256": "87ec335be795e6c66a0aeb0ef9d5960263ca8df8f8d1def64b6588a197da3c9b"
+    },
+    {
+      "path": "vk-vps/outreach.css",
+      "bytes": 4752,
+      "sha256": "93e6646cb3bad00ea57df989b25682d008831f6fe534ca862fbe2f233c2c66b3"
     }
   ]
 }
