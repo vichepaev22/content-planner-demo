@@ -36,7 +36,59 @@ function countLabel(count) {
   return count+' '+({one:'публикация',few:'публикации',many:'публикаций',other:'публикации'})[key];
 }
 
+function mountFrequencySlider(input) {
+  const slider = input.parentElement;
+  const track = slider.querySelector('.cp-slider-track');
+  const thumb = track.querySelector('.cp-slider-thumb');
+  const min = Number(input.min), span = Number(input.max) - min;
+  let drag = null;
+
+  const paint = position => slider.style.setProperty('--position', position * 100 + '%');
+  const sync = () => { if (!drag) paint((input.valueAsNumber - min) / span); };
+  const pointerPosition = event => {
+    const {left, width} = track.getBoundingClientRect();
+    return Math.max(0, Math.min(1, (event.clientX - left - drag.offset) / width));
+  };
+  function endDrag() {
+    drag = null;
+    delete slider.dataset.dragging;
+  }
+
+  slider.addEventListener('pointerdown', event => {
+    if (drag || !event.isPrimary || event.button !== 0) return;
+    event.preventDefault();
+    input.focus({preventScroll: true});
+    const rect = thumb.getBoundingClientRect();
+    const grabbedThumb = event.clientX >= rect.left && event.clientX <= rect.right;
+    drag = {id: event.pointerId, offset: grabbedThumb ? event.clientX - rect.left - rect.width / 2 : 0};
+    slider.setPointerCapture(event.pointerId);
+    slider.dataset.dragging = '';
+    paint(pointerPosition(event));
+  });
+  slider.addEventListener('pointermove', event => {
+    if (event.pointerId === drag?.id) paint(pointerPosition(event));
+  });
+  slider.addEventListener('pointerup', event => {
+    if (event.pointerId !== drag?.id) return;
+    const value = min + Math.round(pointerPosition(event) * span);
+    const changed = value !== input.valueAsNumber;
+    endDrag();
+    input.valueAsNumber = value;
+    sync();
+    if (changed) input.dispatchEvent(new Event('input', {bubbles: true}));
+  });
+  for (const name of ['pointercancel', 'lostpointercapture']) {
+    slider.addEventListener(name, event => {
+      if (event.pointerId !== drag?.id) return;
+      endDrag();
+      sync();
+    });
+  }
+  return sync;
+}
+
 export function mountCampaign({api,selectPanel,refreshQueue}) {
+  const syncFrequencySlider = mountFrequencySlider($('cp-frequency'));
   let current=null, groups=[], view='brief', connected=false, ready=false, busy=false, loaded=false, epoch=0, selected=null;
   const readGoal=()=>document.querySelector('[name="cp-goal"]:checked').value;
   const matchGroup=id=>groups.find(group=>group.id===id);
@@ -101,6 +153,7 @@ export function mountCampaign({api,selectPanel,refreshQueue}) {
   function updateForm() {
     const frequency=Number($('cp-frequency').value), duration=Number($('cp-duration').value);
     const label=frequency===1?'Раз в день':frequency+' раза в день';
+    syncFrequencySlider();
     $('cp-frequency-label').textContent=label; $('cp-frequency').setAttribute('aria-valuetext',label);
     $('cp-count').textContent=countLabel(frequency*duration);
     const start=$('cp-start').value;

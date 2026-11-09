@@ -1,1 +1,62 @@
-<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f6f4ef"><title>Content Planner · Пилот</title><link rel="icon" href="icon.svg"><link rel="stylesheet" href="style.css"></head><body><header><a class="brand" href="./">Content Planner<span>ПЛАНИРОВАНИЕ И ПОДКЛЮЧЕНИЕ VK</span></a><span class="badge">VPS-интерфейс · 05.11.2026</span></header><main><p class="eyebrow">От идеи до публикации</p><h1>Контенту нужен<br><em>понятный ритм.</em></h1><p class="lead">Попробуйте контент-планер, посмотрите макет каталога и проверьте вход в своё приложение VK ID.</p><section class="cards" aria-label="Планирование и публикация"><a class="card green" href="vk-vps/"><span class="number">VPS / АВТОПОСТИНГ VK</span><h2>Публиковать с VPS</h2><p>Подключение собственного сервера, вход VK в серверном браузере, проверенные сообщества, предпросмотр и очередь. Требуется развёрнутый HTTPS API на вашем VPS.</p><strong>Открыть интерфейс сервера ↗</strong></a><a class="card" href="planner/"><span class="number">01 / КОНТЕНТ-ПЛАН</span><h2>Собрать план</h2><p>Описание бизнеса, разбор примеров, выбор стратегии и календарь. Темы можно редактировать, план — скачать в CSV.</p><strong>Открыть контент-планер ↗</strong></a><a class="card green" href="vk-connect/"><span class="number">02 / ПОДКЛЮЧЕНИЕ VK</span><h2>Подключить VK</h2><p>Реальный вход через ваше приложение Content Planner. Разрешение на чтение групп, страниц и событий проверяется отдельно.</p><strong>Открыть вход VK ID ↗</strong></a></section><aside><b>Что здесь можно проверить</b><p>Контент-планер и <a href="vk-demo/">макет списка сообществ</a> работают на вымышленных данных. Страница подключения VK использует настоящий VK ID; токен не сохраняется на сервере или в хранилище браузера. Черновик плана хранится только в этом браузере.</p><p>Браузерный вход уже подключён к приложению 54867924. Доступ groups и возможность чтения API ещё требуют живой проверки. Для автопостинга подготовлен отдельный VPS-модуль и веб-интерфейс. Сервер ещё требуется развернуть и проверить с владельцем VK.</p></aside></main><footer>Content Planner · просмотр без регистрации <span>Макеты не запрашивают пароль или токен</span></footer></body></html>
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f4f2e9">
+  <title>Content Planner · Планирование и публикация в VK</title>
+  <link rel="icon" href="icon.svg">
+  <link rel="stylesheet" href="style.css?v=r21">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="./" aria-label="Content Planner, главная страница"><img src="icon.svg" alt="" width="34" height="34"> Content Planner</a>
+    <a class="header-link" href="vk-vps/">Войти в кабинет <span aria-hidden="true">→</span></a>
+  </header>
+  <main>
+    <section class="hero" aria-labelledby="hero-title">
+      <p class="eyebrow">Планирование и публикация в VK</p>
+      <h1 id="hero-title">Контенту нужен <em>понятный ритм.</em></h1>
+      <p class="lead">Соберите серию постов, согласуйте даты и управляйте публикациями для сообществ VK из одного кабинета.</p>
+      <a class="primary" href="vk-vps/">Открыть кабинет <span aria-hidden="true">→</span></a>
+    </section>
+    <section class="features" aria-labelledby="features-title">
+      <h2 id="features-title">Что можно сделать в кабинете</h2>
+      <div class="cards">
+        <a class="card" href="vk-vps/?section=campaign">
+          <h3>Новый план</h3><span class="arrow" aria-hidden="true">↗</span>
+          <p>Разберите ленту VK, создайте тексты по брифу и настройте календарь публикаций.</p>
+        </a>
+        <a class="card" href="vk-vps/?section=plan">
+          <h3>Импорт плана</h3><span class="arrow" aria-hidden="true">↗</span>
+          <p>Загрузите CSV или TSV, в том числе из Google Таблиц, и перенесите нужный пост в редактор.</p>
+        </a>
+        <a class="card" href="vk-vps/?section=composer">
+          <h3>Создать запись</h3><span class="arrow" aria-hidden="true">↗</span>
+          <p>Подготовьте текст с фото. После проверки опубликуйте сразу или в выбранное время.</p>
+        </a>
+        <a class="card" href="vk-vps/?section=queue">
+          <h3>Очередь</h3><span class="arrow" aria-hidden="true">↗</span>
+          <p>Утвердите черновики, проверьте статусы и отмените запись до начала отправки.</p>
+        </a>
+        <a class="card" href="vk-vps/?section=outreach">
+          <h3>Рассылки</h3><span class="arrow" aria-hidden="true">↗</span>
+          <p>Проверьте доступ к сообществам по ссылкам и запланируйте пост на стену или на модерацию.</p>
+        </a>
+        <a class="card" href="vk-vps/?section=connections">
+          <h3>Подключения</h3><span class="arrow" aria-hidden="true">↗</span>
+          <p>Подключите свой сервер и проверьте состояние входа в VK и доступ к сообществам.</p>
+        </a>
+      </div>
+    </section>
+    <details class="demos">
+      <summary>Демонстрации и тестовый вход VK ID</summary>
+      <ul>
+        <li><a href="planner/">Ранний макет контент-планера</a></li>
+        <li><a href="vk-demo/">Макет списка сообществ</a></li>
+        <li><a href="vk-connect/">Отдельная проверка входа VK ID</a></li>
+      </ul>
+    </details>
+  </main>
+</body>
+</html>

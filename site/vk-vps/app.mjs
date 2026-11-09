@@ -1,14 +1,14 @@
 import {saveTabSession,restoreTabSession,clearTabSession} from './tab-session.mjs';
 import { googleSheetCsvUrl, localPublicationTime, parseEditorialPlan, PLAN_MAX_BYTES } from './editorial-plan.mjs';
 import { mountOutreach } from './outreach-workspace.mjs';
-import { mountCampaign } from './campaign-workspace.mjs';
+import { mountCampaign } from './campaign-workspace.mjs?v=r21';
 const tabStorage=(()=>{try{return sessionStorage;}catch{return null;}})();
 const $ = id => document.getElementById(id);
 const zone = 'Asia/Yekaterinburg';
 let imagePreview = ''; const mediaUrls = new Map(), mediaLoads = new Map();
 let origin = '', token = '', expiresAt = 0, groups = [], jobs = [], state, busy = false, screenshotUrl = '';
 let renderedQueue = '';
-let activePanel = 'campaign', editorialRows = [], selectedRow = 0, planLoad = 0;
+let editorialRows = [], selectedRow = 0, planLoad = 0;
 const labels = { draft: 'Предпросмотр · не отправлено', approved: 'Утверждено · ожидает VPS', preparing: 'VPS заполняет редактор VK', sending: 'Отправка началась', published: 'VK подтвердил публикацию', scheduled: 'VK подтвердил приём в отложенные', submitted: 'Передано на модерацию', unknown: 'Результат неизвестен · проверьте VK', blocked: 'Остановлено до отправки', cancelled: 'Отменено до отправки' };
 const notify = (text, error = false) => {
   const notice = $('notice');
@@ -23,7 +23,7 @@ function endpoint(value) {
 }
 function clearSession() {
   resetEditorialPlan();
-  activePanel = 'campaign';
+  activePanel = entryPanel;
   $('post-text').value = '';
   $('post-time').value = initialPublicationTime();
   $('post-mode').value = 'now';
@@ -35,21 +35,36 @@ function clearSession() {
 }
 async function api(path, body, binary = false, mediaType = null) {
   if (!origin) throw new Error('Сначала укажите VPS.');
+  const session = token;
   const response = await fetch(origin + path, { method: body === undefined ? 'GET' : 'POST', credentials: 'omit', redirect: 'error', referrerPolicy: 'no-referrer',
-    headers: { ...(token ? { Authorization: 'Bearer ' + token } : {}), ...(body === undefined ? {} : { 'Content-Type': mediaType ?? 'application/json' }) }, body: body === undefined ? undefined : (mediaType ? body : JSON.stringify(body)), signal: AbortSignal.timeout(45000) });
+    headers: { ...(session ? { Authorization: 'Bearer ' + session } : {}), ...(body === undefined ? {} : { 'Content-Type': mediaType ?? 'application/json' }) }, body: body === undefined ? undefined : (mediaType ? body : JSON.stringify(body)), signal: AbortSignal.timeout(45000) });
   if (binary && response.ok) return response.blob();
   const data = await response.json();
-  if (!response.ok) { if (response.status === 401 && token) clearSession(); throw new Error(data.message ?? 'Сервер отклонил действие.'); }
+  if (!response.ok) {
+    const message = data.message ?? 'Сервер отклонил действие.';
+    if (response.status === 401 && session && token === session) {
+      clearSession();
+      notify(message, true);
+    }
+    throw new Error(message);
+  }
   return data;
 }
 async function work(action) { if (busy) return; busy = true; render(); try { await action(); } catch (error) { notify(error instanceof TypeError ? 'Сервер не ответил. Проверьте HTTPS-адрес, доступность VPS и разрешённый Origin. Если отправка уже была утверждена, сначала проверьте её результат в очереди.' : error.message, true); } finally { busy = false; render(); } }
-async function refresh() { const result = await api('/api/status'); state = result; jobs = result.queue; render(); }
+async function refresh() {
+  const session = token;
+  const result = await api('/api/status');
+  if (session !== token) return;
+  state = result;
+  jobs = result.queue;
+  render();
+}
 function render() {
   const connected = Boolean(token && expiresAt > Date.now()), vkReady = connected && state?.browser.authenticated;
   const challenge = state?.browser.authChallenge; $('vk-code-form').hidden = !connected || vkReady || !challenge; $('submit-vk-code').disabled = busy || !challenge; $('vk-login-code').disabled = busy || !challenge;
   if (challenge) { $('vk-login-code').minLength = challenge.minLength; $('vk-login-code').maxLength = challenge.maxLength; $('vk-login-code').pattern = `[0-9]{${challenge.minLength},${challenge.maxLength}}`; }
   $('server-title').textContent = connected ? 'VPS подключён' : 'Подключить VPS';
-  $('connect-form').hidden = connected; $('disconnect').hidden = !connected;
+  $('connect-form').hidden = connected; $('disconnect').disabled = !connected || busy;
   $('server-url').disabled = busy; $('connect').disabled = busy;
   for (const id of ['start-browser', 'show-qr', 'refresh']) $(id).disabled = !connected || busy || Boolean(state?.workerBusy) || (id !== 'refresh' && Boolean(state?.browser.setupBlocked));
   $('load-groups').disabled = !vkReady || busy || Boolean(state?.workerBusy);
@@ -110,7 +125,19 @@ $('connect-form').addEventListener('submit', event => { event.preventDefault(); 
   try { localStorage.setItem('content-planner:vps-origin', origin); } catch {}
   saveTabSession(tabStorage,{origin,token,expiresAt}); await initializeConnected({ showConnections: true });
 }); });
-$('disconnect').addEventListener('click', () => work(async () => { try { await api('/api/logout', {}); } finally { clearSession(); notify('Сеанс этой вкладки завершён. Утверждённые задания остаются на вашем VPS.'); } }));
+$('disconnect').addEventListener('click', async () => {
+  await work(async () => {
+    try {
+      await api('/api/logout', {});
+      notify('Вы вышли из Content Planner.');
+    } catch {
+      notify('Вы вышли в этой вкладке. Сервер не подтвердил завершение сеанса.', true);
+    } finally {
+      clearSession();
+    }
+  });
+  if (!token) $('owner-password').focus();
+});
 $('start-browser').addEventListener('click', () => work(initializeConnected));
 async function screen() { const blob = await api('/api/browser/screenshot', undefined, true); if (screenshotUrl) URL.revokeObjectURL(screenshotUrl); screenshotUrl = URL.createObjectURL(blob); $('auth-screen').src = screenshotUrl; $('auth-screen').hidden = false; $('auth-hint').hidden = false; $('enlarge-auth').hidden = false; $('auth-large').src = screenshotUrl; }
 $('show-qr').addEventListener('click', () => work(async () => { await api('/api/browser/qr', {}); await screen(); await refresh(); }));
@@ -151,6 +178,9 @@ $('import-plan').addEventListener('click', () => work(async () => {
 }));
 
 const navigation = [...document.querySelectorAll('[data-panel]')];
+const requestedPanel = new URLSearchParams(location.search).get('section');
+const entryPanel = navigation.some(button => button.dataset.panel === requestedPanel) ? requestedPanel : 'campaign';
+let activePanel = entryPanel;
 const serverCard = $('server-card');
 
 function selectPanel(panel, focus = false) {
@@ -334,8 +364,27 @@ function initialPublicationTime() {
   return `${defaultTime.year}-${defaultTime.month}-${defaultTime.day}T${defaultTime.hour}:${defaultTime.minute}`;
 }
 $('post-time').value = initialPublicationTime();
-setInterval(async () => { if (!token || busy || document.hidden) return; if (expiresAt <= Date.now()) { clearSession(); notify('Сеанс Content Planner истёк. Войдите снова отдельным паролем сервера.'); return; } try { await refresh(); if(!state.workerBusy&&!state.browser.busy&&(!state.browser.started||state.browser.authenticated&&!groups.length))await work(initializeConnected); } catch (error) { notify(error.message, true); } }, 5000);
-window.addEventListener('pagehide',()=>{if(token)saveTabSession(tabStorage,{origin,token,expiresAt});}); updateMode(); render();
+setInterval(async () => {
+  if (!token || busy || document.hidden) return;
+  if (expiresAt <= Date.now()) {
+    clearSession();
+    notify('Сеанс Content Planner истёк. Войдите снова отдельным паролем сервера.');
+    return;
+  }
+  const session = token;
+  try {
+    await refresh();
+    if (token === session && !busy && !state.workerBusy && !state.browser.busy
+      && (!state.browser.started || (state.browser.authenticated && !groups.length))) await work(initializeConnected);
+  } catch (error) {
+    if (token === session) notify(error.message, true);
+  }
+}, 5000);
+window.addEventListener('pagehide', () => { if (token) saveTabSession(tabStorage, {origin, token, expiresAt}); });
+window.addEventListener('pageshow', event => {
+  if (event.persisted && token && restoreTabSession(tabStorage, origin)?.token !== token) location.reload();
+});
+updateMode(); render();
 try {const target=endpoint($('server-url').value);const saved=restoreTabSession(tabStorage,target);if(saved){origin=saved.origin;token=saved.token;expiresAt=saved.expiresAt;await work(() => initializeConnected({ showConnections: true }));}}catch{clearTabSession(tabStorage);}
 
 function clearImage() { if (imagePreview) URL.revokeObjectURL(imagePreview); imagePreview = ''; $('post-image').value = ''; $('image-preview').hidden = true; $('image-preview').removeAttribute('src'); $('clear-image').hidden = true; }

@@ -4,9 +4,6 @@ body>header,body>main{width:100%;max-width:none;padding-inline:clamp(12px,2vw,32
 .workspace-heading{padding:clamp(14px,2vw,22px);border-radius:16px;border:1px solid var(--line);margin-bottom:14px}
 .workspace-heading h1{margin-block:2px 5px}
 .workspace-heading p:last-child{margin-bottom:0}
-.campaign-brief{grid-template-columns:minmax(0,1fr) minmax(225px,clamp(235px,22vw,305px))}
-.cp-summary strong{font-size:clamp(1.55rem,2.45vw,2.4rem);line-height:1.05;overflow-wrap:normal;text-wrap:balance}
-.cp-summary{min-width:0}
 .vk-indicator{position:relative;display:flex;align-items:center;gap:8px;z-index:3}
 .vk-indicator button{min-height:40px;display:inline-flex;align-items:center;gap:7px;padding:4px 10px;font-size:.79rem;white-space:nowrap}
 .vk-dot{width:8px;height:8px;flex:none;border-radius:50%;background:#41815a;box-shadow:0 0 0 3px #b5d4b8}
@@ -16,7 +13,6 @@ body>header,body>main{width:100%;max-width:none;padding-inline:clamp(12px,2vw,32
 .vk-indicator[data-dismissed] .vk-tooltip{visibility:hidden;opacity:0}
 .vk-feedback{z-index:3;top:calc(100% + 6px);pointer-events:none}
 .vk-indicator:is(:hover,:focus-within,[data-open]) .vk-feedback{visibility:hidden}
-@media(max-width:1040px){.campaign-brief{grid-template-columns:minmax(0,1fr)}}
 .or-workspace{display:grid;grid-template-columns:minmax(0,1fr) minmax(230px,clamp(245px,25vw,335px));gap:14px;align-items:start}
 .or-flow,.or-preview{display:grid;gap:10px;min-width:0}
 .or-card{padding:15px;border-radius:16px;border:1px solid var(--line)}
@@ -47,12 +43,5 @@ body>header,body>main{width:100%;max-width:none;padding-inline:clamp(12px,2vw,32
 @media(max-width:950px){.or-workspace{grid-template-columns:minmax(0,1fr)}.or-preview{position:static;grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:630px){.or-preview{grid-template-columns:minmax(0,1fr)}.or-target{grid-template-columns:20px minmax(0,1fr) auto}.or-target .or-state{grid-column:2;justify-self:start}.or-target button:last-child{grid-column:3;grid-row:1}.vk-indicator{gap:3px}.vk-indicator .header-context{display:none}}
 
-@media(min-width:1041px){.cp-summary{grid-row:auto;position:sticky}.cp-summary p:last-child{display:block}}
 .or-target>div:last-child{display:flex;gap:4px;flex-wrap:wrap}
 
-@media(min-width:1180px){
-  #cp-form{display:contents}
-  #cp-form>.cp-card,#cp-form>.cp-actions{grid-column:1/-1}
-  #cp-form>.cp-card:nth-of-type(3){grid-column:1;grid-row:3}
-  .cp-summary{grid-column:2;grid-row:3;position:static;align-self:stretch}
-}

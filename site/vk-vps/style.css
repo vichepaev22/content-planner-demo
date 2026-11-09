@@ -388,7 +388,10 @@ footer a { display: inline-flex; align-items: center; min-height: 44px; }
 }
 
 /* The workspace uses the same sidebar and active-section pattern as Best Service. */
-.planner-main { padding-block: clamp(18px, 3vw, 36px) 36px; }
+.planner-main {
+  --workspace-top: clamp(18px, 3vw, 36px);
+  padding-block: var(--workspace-top) 36px;
+}
 .entry { width: min(100%, 470px); margin: clamp(12px, 7vh, 76px) auto 0; }
 .entry .card { margin-top: 20px; }
 .panel-heading { min-width: 0; margin-block-end: 16px; }
@@ -407,6 +410,9 @@ footer a { display: inline-flex; align-items: center; min-height: 44px; }
   gap: clamp(14px, 2vw, 28px);
 }
 .studio-sidebar {
+  display: flex;
+  flex-direction: column;
+  min-block-size: calc(100dvh - 68px - var(--workspace-top) - 18px);
   padding: 13px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -416,6 +422,9 @@ footer a { display: inline-flex; align-items: center; min-height: 44px; }
 }
 .studio-sidebar > p { padding: 8px 9px; }
 .studio-sidebar nav { display: grid; gap: 4px; }
+.sidebar-footer { margin-block-start: auto; padding-block-start: 16px; }
+.sidebar-footer .workspace-link { border-top-color: var(--line); border-start-start-radius: 0; border-start-end-radius: 0; color: var(--muted); }
+.sidebar-footer .workspace-link:enabled:hover { color: var(--ink); }
 .workspace-link {
   display: flex;
   align-items: center;
@@ -443,7 +452,18 @@ footer a { display: inline-flex; align-items: center; min-height: 44px; }
   color: var(--accent-hover);
 }
 .workspace-link svg { flex: none; }
-.studio-body { min-width: 0; }
+.studio-body { min-width: 0; max-inline-size: 88rem; }
+#panel-composer, #panel-connections, #panel-plan:not(:has(#plan-results:not([hidden]))) { max-inline-size: 48rem; }
+#panel-plan { max-inline-size: 72rem; }
+#panel-plan .plan-source { max-inline-size: 48rem; }
+#panel-campaign:has(#cp-brief:not([hidden])), #panel-outreach { max-inline-size: 67rem; }
+#panel-campaign:has(#cp-brief:not([hidden])) #cp-form { max-inline-size: 46rem; }
+#panel-campaign .cp-list, .editorial-copy, .job .copy { max-inline-size: 68ch; }
+#panel-queue #jobs { display: grid; gap: 0 24px; }
+@media (min-width: 1160px) {
+  #panel-queue #jobs:has(.job + .job) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #panel-queue .job:last-child { padding-block-end: 14px; }
+}
 .studio-body .connections { grid-template-columns: minmax(0, 1fr); }
 .studio-body .connections .panel-heading { margin-bottom: 0; }
 .plan-source h2, .plan-list h2 { margin-top: 0; }
@@ -475,10 +495,12 @@ footer a { display: inline-flex; align-items: center; min-height: 44px; }
 .editorial-copy { margin-top: 0; white-space: pre-wrap; text-wrap: pretty; }
 @media (max-width: 780px) {
   .studio-shell { grid-template-columns: minmax(0, 1fr); }
-  .studio-sidebar { position: static; }
+  .studio-sidebar { position: static; min-block-size: 0; }
   .studio-sidebar > p { display: none; }
-  .studio-sidebar nav { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .studio-sidebar nav { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .workspace-link { justify-content: center; }
+  .sidebar-footer { padding-block-start: 7px; }
+  .sidebar-footer .workspace-link { justify-content: start; }
 }
 @media (max-width: 580px) {
   .studio-sidebar { padding: 8px; }
