@@ -483,6 +483,9 @@ footer a { display: inline-flex; align-items: center; min-height: 44px; }
   overscroll-behavior: contain;
   overflow-anchor: none;
 }
+.context-stack { display: grid; gap: 8px; min-width: 0; }
+.context-stats.community-stats { grid-template-columns: minmax(0, 1fr) minmax(0, 1.18fr); }
+#composer-community-name { font-size: clamp(1.24rem, 1.55vw, 1.65rem); }
 .context-card {
   min-width: 0;
   padding: clamp(13px, 1.35vw, 19px);

@@ -1,5 +1,5 @@
 {
-  "version": "2026-11-09-r22-workspace-context",
+  "version": "2026-11-10-r23-managed-communities",
   "mode": "ui-with-vkid",
   "files": [
     {
@@ -139,18 +139,18 @@
     },
     {
       "path": "vk-vps/index.html",
-      "bytes": 28873,
-      "sha256": "3125ec28b03ace996c46fa99a0559829638f177b194b439f37595b512fe43440"
+      "bytes": 29407,
+      "sha256": "edbc90ee8916deca9cec5da3416a8b1cf1a3f5dc1f1c5596b0a56bfc1bb9f17e"
     },
     {
       "path": "vk-vps/app.mjs",
-      "bytes": 33550,
-      "sha256": "3ed9ee8371eb218977a655bee05782717c36d97643ed793acfdbda88e74f138c"
+      "bytes": 37137,
+      "sha256": "9843423d28fc9cdba31c934cd872c35b7e8b2d12fd506a77684d363eaebf4c70"
     },
     {
       "path": "vk-vps/style.css",
-      "bytes": 16583,
-      "sha256": "d3b2ea6f2bbb5b76b2dc109472b35c0fe20694a1aac0869e13e90b3fece286f5"
+      "bytes": 16806,
+      "sha256": "189aa7ddb997f5cf3e960a1011bf34c853a86dd72f5e3ad4c838b6fa736ebe4c"
     },
     {
       "path": "vk-vps/tab-session.mjs",

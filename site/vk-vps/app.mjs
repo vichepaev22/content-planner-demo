@@ -8,6 +8,7 @@ const zone = 'Asia/Yekaterinburg';
 let imagePreview = ''; const mediaUrls = new Map(), mediaLoads = new Map();
 let origin = '', token = '', expiresAt = 0, groups = [], jobs = [], state, busy = false, screenshotUrl = '';
 let renderedQueue = '';
+let groupCoverage = null, detailVersion = 0, detailTask = Promise.resolve();
 let editorialRows = [], selectedRow = 0, planLoad = 0;
 const labels = { draft: 'Предпросмотр · не отправлено', approved: 'Утверждено · ожидает VPS', preparing: 'VPS заполняет редактор VK', sending: 'Отправка началась', published: 'VK подтвердил публикацию', scheduled: 'VK подтвердил приём в отложенные', submitted: 'Передано на модерацию', unknown: 'Результат неизвестен · проверьте VK', blocked: 'Остановлено до отправки', cancelled: 'Отменено до отправки' };
 const notify = (text, error = false) => {
@@ -32,7 +33,9 @@ function clearSession() {
   updateMode();
   clearTabSession(tabStorage);
   for (const url of mediaUrls.values()) URL.revokeObjectURL(url); mediaUrls.clear(); mediaLoads.clear(); clearImage();
-  token = ''; expiresAt = 0; groups = []; jobs = []; state = null; $('owner-password').value = '';
+  token = ''; expiresAt = 0; groups = []; groupCoverage = null; jobs = []; state = null; $('owner-password').value = '';
+  updateGroupOptions();
+  updateSelectedGroup();
   if (screenshotUrl) URL.revokeObjectURL(screenshotUrl); screenshotUrl = ''; $('auth-screen').hidden = true; $('auth-screen').removeAttribute('src'); $('auth-hint').hidden = true; $('enlarge-auth').hidden = true; $('vk-login-code').value = ''; $('auth-dialog').close(); $('auth-large').removeAttribute('src'); render();
 }
 async function api(path, body, binary = false, mediaType = null) {
@@ -75,7 +78,10 @@ function render() {
   $('vk-status').textContent = !connected ? 'VK и сообщества подключатся после входа в кабинет.' : state?.browser.setupBlocked ? 'Сервер готов. Настройка браузера ещё не завершена; публикация пока недоступна.' : vkReady ? (groups.length?'VK подключён. Сообщества готовы к публикации.':'VK подключён. Загружаем сообщества.') : state?.browser.started ? 'VK ожидает входа владельца на VPS. Обновите экран и подтвердите вход телефоном.' : 'Сервер подключён. Нажмите «Открыть VK на VPS».';
   if (vkReady) { $('vk-login-code').value = ''; $('enlarge-auth').hidden = true; $('auth-dialog').close(); $('auth-large').removeAttribute('src'); }
   if (vkReady && screenshotUrl) { URL.revokeObjectURL(screenshotUrl); screenshotUrl = ''; $('auth-screen').hidden = true; $('auth-hint').hidden = true; $('auth-screen').removeAttribute('src'); }
-  $('start-browser').hidden=Boolean(vkReady&&groups.length);$('show-qr').hidden=Boolean(vkReady);$('load-groups').hidden=Boolean(vkReady&&groups.length);
+  $('start-browser').hidden=Boolean(vkReady);$('show-qr').hidden=Boolean(vkReady);
+  $('groups-hint').textContent = !vkReady ? 'Подключите аккаунт VK, чтобы выбрать сообщество.'
+    : groupCoverage === 'managed' ? (groups.length ? 'Выберите сообщество для этой записи.' : 'В этом аккаунте не найдено сообществ с правами администратора.')
+    : groupCoverage && groupCoverage !== 'refreshing' ? 'VK показал не весь список. Доступны подтверждённые сообщества.' : 'Проверяем сообщества в VK…';
   renderWorkspace(connected, Boolean(vkReady && groups.length));
   renderQueue(connected, Boolean(vkReady));
 }
@@ -88,7 +94,7 @@ function renderQueue(connected, vkReady) {
   for (const j of [...jobs].reverse()) {
     const article = node('article', null, 'job'), g = groups.find(g => g.id === j.groupId);
     const heading = node('div', null, 'job-heading');
-    heading.append(node('h3', j.outreach?.name ?? g?.name ?? 'Сообщество ' + j.groupId),
+    heading.append(node('h3', j.outreach?.name ?? j.managedGroup?.name ?? g?.name ?? 'Сообщество ' + j.groupId),
       node('span', j.outreach && j.status==='approved' ? (j.outreach.route==='suggest'?'Ожидает отправки на модерацию':'Ожидает отправки на стену') : j.campaignId && j.status==='approved' ? (Date.parse(j.publishAt)>Date.now()+7*86400000 ? 'Ожидает окна VK' : vkReady ? 'Утверждено · ожидает VPS' : 'Ожидает подключения VK') : labels[j.status] ?? j.status, 'state ' + j.status));
     const timing = j.publishAt
       ? 'По плану: ' + new Date(j.publishAt).toLocaleString('ru-RU', { timeZone: zone }) + ' · Екатеринбург'
@@ -151,16 +157,40 @@ $('show-qr').addEventListener('click', () => work(async () => { await api('/api/
 $('enlarge-auth').addEventListener('click', () => $('auth-dialog').showModal());
 $('close-auth').addEventListener('click', () => $('auth-dialog').close());
 $('vk-code-form').addEventListener('submit', event => { event.preventDefault(); const challengeId = state?.browser.authChallenge?.id; let code = $('vk-login-code').value; $('vk-login-code').value = ''; work(async () => { try { await api('/api/browser/code', { code, challengeId }); code = ''; await refresh(); if (!state.browser.authenticated) await screen(); else await loadGroups(); notify(state.browser.authenticated ? '' : 'Код передан в VK. Обновите состояние и проверьте результат входа.'); } finally { code = ''; } }); });
-async function loadGroups() {
-  const result=await api('/api/groups');groups=result.groups;
-  $('group').replaceChildren();for(const g of groups){const option=node('option',g.name);option.value=g.id;$('group').append(option);}
+function updateGroupOptions() {
+  const select = $('group'), selected = select.value;
+  const placeholder = node('option', 'Выберите сообщество'); placeholder.value = '';
+  select.replaceChildren(placeholder, ...groups.map(group => {
+    const option = node('option', group.name); option.value = group.id; return option;
+  }));
+  if (groups.some(group => String(group.id) === selected)) select.value = selected;
+}
+
+async function loadGroups(refreshList = false) {
+  const session = token;
+  try {
+    const result = await (refreshList ? api('/api/groups/refresh',{}) : api('/api/groups'));
+    if (session !== token) return;
+    const changed = JSON.stringify(groups) !== JSON.stringify(result.groups);
+    groups = result.groups;
+    groupCoverage = result.coverage;
+    if (changed) {
+      const previous = $('group').value;
+      updateGroupOptions();
+      if ($('group').value !== previous) updateSelectedGroup();
+    }
+    render();
+  } catch (error) {
+    if (session === token && token) { groupCoverage = 'unavailable'; render(); }
+    throw error;
+  }
 }
 async function initializeConnected({ showConnections = false } = {}) {
   await refresh();
   if(state.browser.setupBlocked){if(showConnections) selectPanel('connections', true);notify('Настройка браузера на VPS ещё не завершена.');return;}
   if(state.workerBusy||state.browser.busy){notify('Сеанс восстановлен. VPS выполняет утверждённое задание.');return;}
   if(!state.browser.started){notify('Открываем сохранённый профиль VK на VPS.');await api('/api/browser/start',{});}
-  for(let n=0;n<12;n++) {
+  for(let n=0;n<20;n++) {
     await refresh();if(state.browser.authenticated)break;
     await new Promise(resolve=>setTimeout(resolve,750));
   }
@@ -171,10 +201,15 @@ async function initializeConnected({ showConnections = false } = {}) {
     notify('VK запросил подтверждение входа. Подтвердите его телефоном.');
   }
 }
-$('load-groups').addEventListener('click',()=>work(async()=>{await loadGroups();notify(`Сервер подтвердил сообществ: ${groups.length}.`);}));
-$('post-form').addEventListener('submit', event => { event.preventDefault(); work(async () => { const value = draftFromForm(), file = $('post-image').files[0]; if (file) { if (!['image/png','image/jpeg'].includes(file.type) || file.size > 5 * 1024 * 1024) throw new Error('Выберите PNG или JPEG до 5 МБ.'); const uploaded = await api('/api/media', file, false, file.type); value.mediaId = uploaded.media.id; } await api('/api/jobs', value); await refresh(); clearImage(); selectPanel('queue', true); notify('Предпросмотр сохранён на VPS. Проверьте группу, текст и время; отправка начнётся только после утверждения записи в очереди.'); }); });
+$('load-groups').addEventListener('click',()=>work(async()=>{
+  notify('');
+  await loadGroups(true);
+  if ($('group').value) updateSelectedGroup();
+}));
+$('post-form').addEventListener('submit', event => { event.preventDefault(); work(async () => { const value = draftFromForm(), file = $('post-image').files[0]; if (file) { if (!['image/png','image/jpeg'].includes(file.type) || file.size > 5 * 1024 * 1024) throw new Error('Выберите PNG или JPEG до 5 МБ.'); const uploaded = await api('/api/media', file, false, file.type); value.mediaId = uploaded.media.id; } await api('/api/jobs', value); await refresh(); clearImage(); $('group').value = ''; updateSelectedGroup(); selectPanel('queue', true); notify('Предпросмотр сохранён на VPS. Проверьте группу, текст и время; отправка начнётся только после утверждения записи в очереди.'); }); });
 $('post-mode').addEventListener('change', updateMode);
 $('post-form').addEventListener('input', renderComposerContext);
+$('group').addEventListener('change', updateSelectedGroup);
 $('refresh').addEventListener('click', () => work(refresh));
 $('import-plan').addEventListener('click', () => work(async () => {
   const file = $('plan-file').files[0]; if (!file || file.size > 1024 * 1024) throw new Error('Выберите JSON-файл не больше 1 МБ.');
@@ -253,11 +288,43 @@ function renderComposerContext() {
   const time = scheduled ? $('post-time').value : '';
   writeContext('composer-mode', scheduled ? 'По расписанию' : 'Сразу');
   writeContext('composer-target', group?.name ?? 'Выберите сообщество.');
+  $('prepare-post').disabled = busy || !state?.browser.authenticated || !group;
+  $('import-plan').disabled = $('prepare-post').disabled;
   writeContext('composer-length', textLength.toLocaleString('ru-RU') + ' / 2 000');
   writeContext('composer-photo', hasPhoto ? 'Добавлено' : '—');
   writeContext('composer-next', !textLength ? 'Добавьте текст записи.' : scheduled && !time ? 'Укажите дату и время.'
     : time ? new Date(time + ':00+05:00').toLocaleString('ru-RU', {timeZone: zone, day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'}) + ' · Екатеринбург'
     : 'Создайте предпросмотр для утверждения.');
+}
+
+function updateSelectedGroup() {
+  renderComposerContext();
+  const group = groups.find(item => String(item.id) === $('group').value);
+  const version = ++detailVersion;
+  $('composer-community').hidden = !group;
+  writeContext('composer-community-name', group?.name ?? '');
+  writeContext('composer-community-audience', '—');
+  writeContext('composer-community-last', '—');
+  const message = $('composer-community-state');
+  if (!group) { message.hidden = true; message.textContent = ''; return; }
+  message.hidden = false;
+  message.textContent = 'Загружаем данные из VK…';
+  detailTask = detailTask.then(async () => {
+    if (version !== detailVersion) return;
+    try {
+      const {details} = await api('/api/groups/details', {groupId: group.id});
+      if (version !== detailVersion) return;
+      writeContext('composer-community-audience', details.audience ?? 'Нет данных');
+      writeContext('composer-community-last', details.lastPost ?? 'Нет данных');
+      message.hidden = Boolean(details.audience && details.lastPost);
+      message.textContent = message.hidden ? '' : 'Показатели доступны, когда их показывает VK.';
+    } catch {
+      if (version !== detailVersion) return;
+      writeContext('composer-community-audience', 'Нет данных');
+      writeContext('composer-community-last', 'Нет данных');
+      message.textContent = 'Не удалось получить данные. Обновите список, чтобы повторить.';
+    }
+  });
 }
 
 function renderContext(connected) {
@@ -278,7 +345,8 @@ function renderContext(connected) {
   writeContext('connections-server', connected ? 'Подключён' : 'Ожидает входа');
   writeContext('connections-vk', vkReady ? 'Подключён' : 'Ожидает входа');
   writeContext('connections-next', groups.length ? 'Выберите сообщество при создании записи.'
-    : vkReady ? 'Ожидаем список доступных сообществ.' : 'Подтвердите вход в VK на сервере.');
+    : vkReady ? (groupCoverage === 'managed' ? 'В аккаунте нет подтверждённых сообществ.' : 'Ожидаем список доступных сообществ.')
+    : 'Подтвердите вход в VK на сервере.');
 }
 
 function resetEditorialPlan() {
@@ -449,8 +517,10 @@ setInterval(async () => {
   const session = token;
   try {
     await refresh();
-    if (token === session && !busy && !state.workerBusy && !state.browser.busy
-      && (!state.browser.started || (state.browser.authenticated && !groups.length))) await work(initializeConnected);
+    if (token !== session || busy) return;
+    if (state.browser.authenticated && groupCoverage === 'refreshing') await loadGroups();
+    if (!state.workerBusy && !state.browser.busy
+      && (!state.browser.started || (state.browser.authenticated && groupCoverage === null))) await work(initializeConnected);
   } catch (error) {
     if (token === session) notify(error.message, true);
   }
