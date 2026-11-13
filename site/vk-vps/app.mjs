@@ -1,7 +1,8 @@
 import {saveTabSession,restoreTabSession,clearTabSession} from './tab-session.mjs';
 import { googleSheetCsvUrl, localPublicationTime, parseEditorialPlan, PLAN_MAX_BYTES } from './editorial-plan.mjs';
 import { mountOutreach } from './outreach-workspace.mjs?v=r22';
-import { mountCampaign } from './campaign-workspace.mjs?v=r22';
+import { mountCampaign } from './campaign-workspace.mjs?v=chg033-search';
+import { mountWorkspaceSearch } from './workspace-search.mjs?v=chg033-search';
 const tabStorage=(()=>{try{return sessionStorage;}catch{return null;}})();
 const $ = id => document.getElementById(id);
 const zone = 'Asia/Yekaterinburg';
@@ -25,6 +26,7 @@ function endpoint(value) {
   return u.origin + u.pathname.replace(/\/$/, '');
 }
 function clearSession() {
+  searchUi.clear();
   resetEditorialPlan();
   activePanel = entryPanel;
   $('post-text').value = '';
@@ -88,6 +90,7 @@ function render() {
       : (groups.length ? 'Подтверждённые сообщества уже доступны. Продолжаем проверку списка VK.' : 'Проверяем сообщества в VK. Пока можно подготовить текст и фото.'));
   renderWorkspace(connected, Boolean(vkReady && groups.length));
   renderQueue(connected, Boolean(vkReady));
+  if (connected && activePanel === 'search') searchUi.update();
 }
 function renderQueue(connected, vkReady) {
   const key = JSON.stringify([connected, vkReady, busy, groups, jobs, mediaUrls.size]);
@@ -97,6 +100,8 @@ function renderQueue(connected, vkReady) {
   if (!jobs.length) $('jobs').append(node('p', connected ? 'Очередь сервера пуста.' : 'После подключения здесь появятся реальные записи вашего сервера.', 'empty'));
   for (const j of [...jobs].reverse()) {
     const article = node('article', null, 'job'), g = groups.find(g => g.id === j.groupId);
+    article.id = 'queue-job-' + j.id;
+    article.tabIndex = -1;
     const heading = node('div', null, 'job-heading');
     heading.append(node('h3', j.outreach?.name ?? j.managedGroup?.name ?? g?.name ?? 'Сообщество ' + j.groupId),
       node('span', j.outreach && j.status==='approved' ? (j.outreach.route==='suggest'?'Ожидает отправки на модерацию':'Ожидает отправки на стену') : j.campaignId && j.status==='approved' ? (Date.parse(j.publishAt)>Date.now()+7*86400000 ? 'Ожидает окна VK' : vkReady ? 'Утверждено · ожидает VPS' : 'Ожидает подключения VK') : labels[j.status] ?? j.status, 'state ' + j.status));
@@ -259,6 +264,7 @@ function selectPanel(panel, focus = false) {
   }
   const notice = $('notice');
   notice.hidden = !studio.hidden && notice.dataset.panel !== panel;
+  if (panel === 'search' && !studio.hidden) searchUi.update();
   if (focus) {
     const title = $('panel-' + panel).querySelector('h1');
     const {top, bottom} = title.getBoundingClientRect();
@@ -516,7 +522,24 @@ function renderVkIndicator(ready) {
 }
 
 const outreachUi=mountOutreach({api,selectPanel,refreshQueue:refresh});
-const campaignUi=mountCampaign({api,selectPanel,refreshQueue:refresh});
+const campaignUi = mountCampaign({api, selectPanel, refreshQueue: refresh,
+  onChange: () => { if (token && activePanel === 'search') searchUi.update(); }});
+const searchUi = mountWorkspaceSearch({
+  snapshot: () => {
+    const plan = campaignUi.getSearchSnapshot();
+    return { ...plan, jobs, groups: [...plan.groups, ...groups] };
+  },
+  labels,
+  open: (result) => {
+    if (result.area === 'plan') return campaignUi.openSearchPost(result.campaignId, result.id);
+    const article = $('queue-job-' + result.id);
+    if (!article) return false;
+    selectPanel('queue', true);
+    article.focus();
+    article.scrollIntoView({ block: 'nearest' });
+    return true;
+  }
+});
 try { $('server-url').value = localStorage.getItem('content-planner:vps-origin') || 'https://31.76.80.185/content-planner-api'; } catch {}
 function initialPublicationTime() {
   const defaultTime = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(Date.now() + 600000)).filter(p => p.type !== 'literal').map(p => [p.type, p.value]));

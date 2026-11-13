@@ -87,7 +87,7 @@ function mountFrequencySlider(input) {
   return sync;
 }
 
-export function mountCampaign({api,selectPanel,refreshQueue}) {
+export function mountCampaign({api,selectPanel,refreshQueue,onChange}) {
   const syncFrequencySlider = mountFrequencySlider($('cp-frequency'));
   let current=null, groups=[], view='brief', connected=false, ready=false, busy=false, loaded=false, epoch=0, selected=null;
   const readGoal=()=>document.querySelector('[name="cp-goal"]:checked').value;
@@ -182,6 +182,7 @@ export function mountCampaign({api,selectPanel,refreshQueue}) {
       if(!active(requestEpoch)) return;
       groups=result.groups; current=result.campaign; loaded=true; fillForm();
       if(current) renderPlan();
+      else onChange?.();
       setView(current?(current.queueIds?'posts':'calendar'):'brief');
       notice('');
     });
@@ -228,6 +229,7 @@ export function mountCampaign({api,selectPanel,refreshQueue}) {
       calendar.append(day);
     }
     controls();
+    onChange?.();
   }
   function scheduleLabel() {
     const date=$('cp-edit-date').value,time=$('cp-edit-time').value;
@@ -325,6 +327,15 @@ export function mountCampaign({api,selectPanel,refreshQueue}) {
   for(const button of document.querySelectorAll('[data-cp-close]')) button.addEventListener('click',()=>{if(!busy) $(button.dataset.cpClose).close();});
   $('cp-png').addEventListener('click',()=>exportCalendar(current,[...dayGroups()],paddingDays()));
   return {
+    getSearchSnapshot() { return { campaign: current, ready: loaded, groups }; },
+    openSearchPost(campaignId, postId) {
+      const post = current?.id === campaignId && current.posts.find(item => item.id === postId);
+      if (!post || busy) return false;
+      selectPanel('campaign', true);
+      setView(current.queueIds ? 'posts' : 'calendar');
+      openEditor(post);
+      return true;
+    },
     updateConnection(nextConnected,nextReady) {
       ready=nextReady;
       if (nextConnected!==connected) {
