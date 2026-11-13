@@ -8,7 +8,7 @@ const zone = 'Asia/Yekaterinburg';
 let imagePreview = ''; const mediaUrls = new Map(), mediaLoads = new Map();
 let origin = '', token = '', expiresAt = 0, groups = [], jobs = [], state, busy = false, screenshotUrl = '';
 let renderedQueue = '';
-let groupCoverage = null, detailVersion = 0, detailTask = Promise.resolve();
+let groupCoverage = null, groupRequest = 0, detailVersion = 0, detailTask = Promise.resolve();
 let editorialRows = [], selectedRow = 0, planLoad = 0;
 const labels = { draft: 'Предпросмотр · не отправлено', approved: 'Утверждено · ожидает VPS', preparing: 'VPS заполняет редактор VK', sending: 'Отправка началась', published: 'VK подтвердил публикацию', scheduled: 'VK подтвердил приём в отложенные', submitted: 'Передано на модерацию', unknown: 'Результат неизвестен · проверьте VK', blocked: 'Остановлено до отправки', cancelled: 'Отменено до отправки' };
 const notify = (text, error = false) => {
@@ -72,16 +72,20 @@ function render() {
   $('connect-form').hidden = connected; $('disconnect').disabled = !connected || busy;
   $('server-url').disabled = busy; $('connect').disabled = busy;
   for (const id of ['start-browser', 'show-qr', 'refresh']) $(id).disabled = !connected || busy || Boolean(state?.workerBusy) || (id !== 'refresh' && Boolean(state?.browser.setupBlocked));
-  $('load-groups').disabled = !vkReady || busy || Boolean(state?.workerBusy);
-  for (const id of ['group', 'post-text', 'post-mode', 'prepare-post', 'plan-file', 'import-plan', 'post-image', 'clear-image']) $(id).disabled = !vkReady || !groups.length || busy;
+  $('load-groups').disabled = !connected || busy || Boolean(vkReady && state?.workerBusy);
+  writeContext('load-groups', vkReady ? 'Обновить сообщества' : 'Подключить VK');
+  $('group').disabled = !vkReady || !groups.length || busy;
+  for (const id of ['post-text', 'post-mode', 'post-image', 'clear-image']) $(id).disabled = !connected || busy;
   $('server-status').textContent = connected ? 'Сеанс в этой вкладке до ' + new Date(expiresAt).toLocaleTimeString('ru-RU', { timeZone: zone }) + ' (Екатеринбург).' : 'Подключения пока нет.';
   $('vk-status').textContent = !connected ? 'VK и сообщества подключатся после входа в кабинет.' : state?.browser.setupBlocked ? 'Сервер готов. Настройка браузера ещё не завершена; публикация пока недоступна.' : vkReady ? (groups.length?'VK подключён. Сообщества готовы к публикации.':'VK подключён. Загружаем сообщества.') : state?.browser.started ? 'VK ожидает входа владельца на VPS. Обновите экран и подтвердите вход телефоном.' : 'Сервер подключён. Нажмите «Открыть VK на VPS».';
   if (vkReady) { $('vk-login-code').value = ''; $('enlarge-auth').hidden = true; $('auth-dialog').close(); $('auth-large').removeAttribute('src'); }
   if (vkReady && screenshotUrl) { URL.revokeObjectURL(screenshotUrl); screenshotUrl = ''; $('auth-screen').hidden = true; $('auth-hint').hidden = true; $('auth-screen').removeAttribute('src'); }
   $('start-browser').hidden=Boolean(vkReady);$('show-qr').hidden=Boolean(vkReady);
-  $('groups-hint').textContent = !vkReady ? 'Подключите аккаунт VK, чтобы выбрать сообщество.'
+  writeContext('groups-hint', !vkReady ? 'Подключите аккаунт VK, чтобы выбрать сообщество.'
     : groupCoverage === 'managed' ? (groups.length ? 'Выберите сообщество для этой записи.' : 'В этом аккаунте не найдено сообществ с правами администратора.')
-    : groupCoverage && groupCoverage !== 'refreshing' ? 'VK показал не весь список. Доступны подтверждённые сообщества.' : 'Проверяем сообщества в VK…';
+    : groupCoverage === 'partial' || groupCoverage === 'unavailable'
+      ? (groups.length ? 'Показаны подтверждённые сообщества. Полный список можно обновить.' : 'Не удалось загрузить сообщества. Нажмите «Обновить сообщества».')
+      : (groups.length ? 'Подтверждённые сообщества уже доступны. Продолжаем проверку списка VK.' : 'Проверяем сообщества в VK. Пока можно подготовить текст и фото.'));
   renderWorkspace(connected, Boolean(vkReady && groups.length));
   renderQueue(connected, Boolean(vkReady));
 }
@@ -168,9 +172,10 @@ function updateGroupOptions() {
 
 async function loadGroups(refreshList = false) {
   const session = token;
+  const request = ++groupRequest;
   try {
     const result = await (refreshList ? api('/api/groups/refresh',{}) : api('/api/groups'));
-    if (session !== token) return;
+    if (session !== token || request !== groupRequest) return;
     const changed = JSON.stringify(groups) !== JSON.stringify(result.groups);
     groups = result.groups;
     groupCoverage = result.coverage;
@@ -181,7 +186,9 @@ async function loadGroups(refreshList = false) {
     }
     render();
   } catch (error) {
-    if (session === token && token) { groupCoverage = 'unavailable'; render(); }
+    if (session !== token || request !== groupRequest) return;
+    groupCoverage = 'unavailable';
+    render();
     throw error;
   }
 }
@@ -202,6 +209,11 @@ async function initializeConnected({ showConnections = false } = {}) {
   }
 }
 $('load-groups').addEventListener('click',()=>work(async()=>{
+  if (!state?.browser.authenticated) {
+    selectPanel('connections', true);
+    await initializeConnected();
+    return;
+  }
   notify('');
   await loadGroups(true);
   if ($('group').value) updateSelectedGroup();
@@ -288,8 +300,12 @@ function renderComposerContext() {
   const time = scheduled ? $('post-time').value : '';
   writeContext('composer-mode', scheduled ? 'По расписанию' : 'Сразу');
   writeContext('composer-target', group?.name ?? 'Выберите сообщество.');
-  $('prepare-post').disabled = busy || !state?.browser.authenticated || !group;
-  $('import-plan').disabled = $('prepare-post').disabled;
+  const canPrepare = Boolean(state?.browser.authenticated && group);
+  $('prepare-post').disabled = busy || !canPrepare;
+  $('plan-file').disabled = $('import-plan').disabled = busy || !canPrepare;
+  writeContext('prepare-hint', !state?.browser.authenticated ? 'Сначала подключите VK.'
+    : !group ? (groups.length ? 'Выберите сообщество для предпросмотра.' : 'Предпросмотр станет доступен после загрузки и выбора сообщества.')
+    : 'Запись отправится после утверждения в очереди.');
   writeContext('composer-length', textLength.toLocaleString('ru-RU') + ' / 2 000');
   writeContext('composer-photo', hasPhoto ? 'Добавлено' : '—');
   writeContext('composer-next', !textLength ? 'Добавьте текст записи.' : scheduled && !time ? 'Укажите дату и время.'

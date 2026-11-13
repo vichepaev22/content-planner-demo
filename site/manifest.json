@@ -1,5 +1,5 @@
 {
-  "version": "2026-11-10-r23-managed-communities",
+  "version": "2026-11-10-r24-composer-recovery",
   "mode": "ui-with-vkid",
   "files": [
     {
@@ -139,13 +139,13 @@
     },
     {
       "path": "vk-vps/index.html",
-      "bytes": 29407,
-      "sha256": "edbc90ee8916deca9cec5da3416a8b1cf1a3f5dc1f1c5596b0a56bfc1bb9f17e"
+      "bytes": 29452,
+      "sha256": "4562b3a92a4e4e08a87c86ced0e8d80fc458c659716ea1d928cb8cf89e63dcbf"
     },
     {
       "path": "vk-vps/app.mjs",
-      "bytes": 37137,
-      "sha256": "9843423d28fc9cdba31c934cd872c35b7e8b2d12fd506a77684d363eaebf4c70"
+      "bytes": 38375,
+      "sha256": "2e87b0007d807fe436d3604028f5400474f687ff308ad49f14b766e42f183d6e"
     },
     {
       "path": "vk-vps/style.css",
