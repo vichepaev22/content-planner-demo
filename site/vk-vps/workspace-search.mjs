@@ -17,7 +17,7 @@ function records({ campaign, jobs, groups }) {
   return planned.concat(jobs.map(job => ({
     id: job.id, area: job.status === 'draft' ? 'draft' : history.has(job.status) ? 'history' : 'queue',
     status: job.status, groupId: job.groupId, group: job.managedGroup?.name ?? job.outreach?.name ?? groupName(job.groupId),
-    date: day(job.publishAt ?? job.createdAt), title: '', text: job.text
+    date: day(job.repeatAt ?? job.publishAt ?? job.createdAt), title: job.poll?.question ?? ({story: 'История', clip: 'Клип'}[job.format] ?? ''), text: job.text || job.poll?.options?.join(' · ') || ''
   })));
 }
 

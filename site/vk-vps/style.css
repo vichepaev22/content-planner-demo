@@ -585,3 +585,9 @@ footer a { display: inline-flex; align-items: center; min-height: 44px; }
 #search-form .controls { margin-top: 16px; }
 #search-results .job { display: grid; justify-items: start; gap: 5px; }
 #search-results .job .copy { margin: 0; }
+
+.repeat-settings { margin-block: 14px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; }
+
+.carousel-preview { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,10rem),1fr)); gap:12px; margin-block:12px; }
+.carousel-card { min-width:0; }
+.carousel-card .post-image { margin:0; }

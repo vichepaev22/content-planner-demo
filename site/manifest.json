@@ -1,5 +1,5 @@
 {
-  "version": "2026-11-14-chg033-search",
+  "version": "2026-11-14-chg033-repeat-and-drafts",
   "mode": "ui-with-vkid",
   "files": [
     {
@@ -139,23 +139,23 @@
     },
     {
       "path": "vk-vps/index.html",
-      "bytes": 31715,
-      "sha256": "cca36ea3fa05976b4fc26457e5072422bb12e73c2d8ce0cd449d6e19eccc1b66"
+      "bytes": 34107,
+      "sha256": "85196ff15388b9a087b7b0b4502302efe6c6db61cac0dfaa45c5ba71ffd4c68b"
     },
     {
       "path": "vk-vps/app.mjs",
-      "bytes": 39280,
-      "sha256": "8a77fabf094cd3a776f4b4df662387f6072ab49cd951e2e3a0974f1941e3a111"
+      "bytes": 49701,
+      "sha256": "a3b96c8e298c825a8f9956ea6c6cd325884a56fe3201492f9c90e912077cff46"
     },
     {
       "path": "vk-vps/workspace-search.mjs",
-      "bytes": 5719,
-      "sha256": "8652b1b801c15f6840f4d3edfa88f49c15048f1f0ed2752620e1843b86953922"
+      "bytes": 5859,
+      "sha256": "4269b636e98c4245eda1b47d9e05d0d0c2f6dc5f88711607ad5996e6ff3258b1"
     },
     {
       "path": "vk-vps/style.css",
-      "bytes": 17127,
-      "sha256": "081999f7f3b0ef869086dda39a099734a662efe72e931282b89ece211b6ef1ac"
+      "bytes": 17442,
+      "sha256": "9579ad2e0335e44970ecd8ea80960017673a1074ae6aaa68a04cf0bf643a76d2"
     },
     {
       "path": "vk-vps/tab-session.mjs",

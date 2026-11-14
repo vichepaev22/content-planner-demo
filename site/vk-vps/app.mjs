@@ -2,11 +2,13 @@ import {saveTabSession,restoreTabSession,clearTabSession} from './tab-session.mj
 import { googleSheetCsvUrl, localPublicationTime, parseEditorialPlan, PLAN_MAX_BYTES } from './editorial-plan.mjs';
 import { mountOutreach } from './outreach-workspace.mjs?v=r22';
 import { mountCampaign } from './campaign-workspace.mjs?v=chg033-search';
-import { mountWorkspaceSearch } from './workspace-search.mjs?v=chg033-search';
+import { mountWorkspaceSearch } from './workspace-search.mjs?v=chg033-drafts';
 const tabStorage=(()=>{try{return sessionStorage;}catch{return null;}})();
 const $ = id => document.getElementById(id);
 const zone = 'Asia/Yekaterinburg';
-let imagePreview = ''; const mediaUrls = new Map(), mediaLoads = new Map();
+let imagePreview = '', videoPreview = '';
+let photoFiles = [];
+const mediaUrls = new Map(), mediaLoads = new Map();
 let origin = '', token = '', expiresAt = 0, groups = [], jobs = [], state, busy = false, screenshotUrl = '';
 let renderedQueue = '';
 let groupCoverage = null, groupRequest = 0, detailVersion = 0, detailTask = Promise.resolve();
@@ -32,6 +34,13 @@ function clearSession() {
   $('post-text').value = '';
   $('post-time').value = initialPublicationTime();
   $('post-mode').value = 'now';
+  $('post-format').value = 'post';
+  clearVideo();
+  $('repeat-cadence').value = '';
+  $('delete-after').value = '';
+  $('poll-question').value = '';
+  $('poll-options').value = '';
+  $('poll-settings').open = false;
   updateMode();
   clearTabSession(tabStorage);
   for (const url of mediaUrls.values()) URL.revokeObjectURL(url); mediaUrls.clear(); mediaLoads.clear(); clearImage();
@@ -88,12 +97,13 @@ function render() {
     : groupCoverage === 'partial' || groupCoverage === 'unavailable'
       ? (groups.length ? 'Показаны подтверждённые сообщества. Полный список можно обновить.' : 'Не удалось загрузить сообщества. Нажмите «Обновить сообщества».')
       : (groups.length ? 'Подтверждённые сообщества уже доступны. Продолжаем проверку списка VK.' : 'Проверяем сообщества в VK. Пока можно подготовить текст и фото.'));
+  updateFormat();
   renderWorkspace(connected, Boolean(vkReady && groups.length));
   renderQueue(connected, Boolean(vkReady));
   if (connected && activePanel === 'search') searchUi.update();
 }
 function renderQueue(connected, vkReady) {
-  const key = JSON.stringify([connected, vkReady, busy, groups, jobs, mediaUrls.size]);
+  const key = JSON.stringify([connected, vkReady, busy, groups, jobs, mediaUrls.size, state?.capabilities?.carouselPublish, state?.capabilities?.pollPublish]);
   if (key === renderedQueue) return;
   renderedQueue = key;
   $('jobs').replaceChildren();
@@ -105,43 +115,151 @@ function renderQueue(connected, vkReady) {
     const heading = node('div', null, 'job-heading');
     heading.append(node('h3', j.outreach?.name ?? j.managedGroup?.name ?? g?.name ?? 'Сообщество ' + j.groupId),
       node('span', j.outreach && j.status==='approved' ? (j.outreach.route==='suggest'?'Ожидает отправки на модерацию':'Ожидает отправки на стену') : j.campaignId && j.status==='approved' ? (Date.parse(j.publishAt)>Date.now()+7*86400000 ? 'Ожидает окна VK' : vkReady ? 'Утверждено · ожидает VPS' : 'Ожидает подключения VK') : labels[j.status] ?? j.status, 'state ' + j.status));
-    const timing = j.publishAt
-      ? 'По плану: ' + new Date(j.publishAt).toLocaleString('ru-RU', { timeZone: zone }) + ' · Екатеринбург'
+    if (j.format) article.append(node('p', j.format === 'story' ? 'История VK' : 'Клип VK', 'hint'));
+    const timing = (j.repeatAt ?? j.publishAt)
+      ? 'По плану: ' + publicationLabel(j.repeatAt ?? j.publishAt)
       : 'Сразу после утверждения и проверки VPS.';
     article.append(heading, node('p', j.text, 'copy'), node('p', timing, 'hint time'));
-    if (j.image) {
-      const image = node('img', null, 'post-image'); image.alt = 'Картинка этой публикации'; article.append(image);
-      if (mediaUrls.has(j.image.id)) image.src = mediaUrls.get(j.image.id);
-      else if (!mediaLoads.has(j.image.id)) {
+    if (j.repeatSlots && !j.repeatRoot) {
+      const list = node('ol');
+      for (const slot of j.repeatSlots) list.append(node('li', publicationLabel(slot)));
+      article.append(node('p', 'Выходов в серии: ' + j.repeatSlots.length, 'hint'), list);
+    } else if (j.repeatRoot) article.append(node('p', 'Серия · выход ' + j.repeatIndex + ' из ' + j.repeatCount, 'hint'));
+    const pictures = j.images ?? (j.image ? [j.image] : []);
+    const gallery = pictures.length > 1 ? node('div', null, 'carousel-preview') : article;
+    if (pictures.length > 1) {
+      article.append(node('p', 'Карусель · ' + pictures.length + ' карточек', 'hint'), gallery);
+    }
+    for (const picture of pictures) {
+      const image = node('img', null, 'post-image'); image.alt = 'Картинка этой публикации'; gallery.append(image);
+      if (mediaUrls.has(picture.id)) image.src = mediaUrls.get(picture.id);
+      else if (!mediaLoads.has(picture.id)) {
         const session = token;
-        const load = api('/api/media/' + j.image.id, undefined, true).then(blob => {
+        const load = api('/api/media/' + picture.id, undefined, true).then(blob => {
           if (session !== token || !token) return;
-          mediaUrls.set(j.image.id, URL.createObjectURL(blob)); render();
-        }).catch(() => { image.alt = 'Предпросмотр изображения временно недоступен'; }).finally(() => mediaLoads.delete(j.image.id));
-        mediaLoads.set(j.image.id, load);
+          mediaUrls.set(picture.id, URL.createObjectURL(blob)); render();
+        }).catch(() => { image.alt = 'Предпросмотр изображения временно недоступен'; }).finally(() => mediaLoads.delete(picture.id));
+        mediaLoads.set(picture.id, load);
       }
+    }
+    if (j.video) {
+      const video = node('video', null, 'post-image');
+      video.controls = true; video.muted = true; video.preload = 'none'; article.append(video);
+      const id = j.video.id, session = token;
+      if (mediaUrls.has(id)) video.src = mediaUrls.get(id);
+      else if (!mediaLoads.has(id)) {
+        const load = api('/api/media/' + id, undefined, true).then(blob => {
+          if (!session || session !== token) return;
+          mediaUrls.set(id, URL.createObjectURL(blob)); render();
+        }).catch(() => { video.setAttribute('aria-label', 'Предпросмотр видео временно недоступен'); }).finally(() => mediaLoads.delete(id));
+        mediaLoads.set(id, load);
+      }
+    }
+    if (j.poll) {
+      const list = node('ol');
+      for (const option of j.poll.options) list.append(node('li', option));
+      article.append(node('h4', j.poll.question), list);
+    }
+    if (j.autoDelete) {
+      const status = { pending: 'Запланировано на ' + publicationLabel(j.deletion?.dueAt), cancelled: 'Отменено',
+        deleted: 'Удалено в VK', deleting: 'Удаляется', blocked: 'Остановлено', unknown: 'Требуется проверка VK' }[j.deletion?.status];
+      article.append(node('p', 'Автоудаление · ' + (status ?? ('через ' + j.autoDelete + ' мин. после подтверждённого выхода')), 'hint'));
+      if (j.deletion?.note) article.append(node('p', j.deletion.note, 'hint'));
     }
     if (j.note) article.append(node('p', j.note, 'hint'));
     const controls = node('div', null, 'controls');
     const retryImage = j.status === 'blocked' && j.image && !j.result && (j.note === 'VK не подтвердил готовность фотографии. Запись не отправлена.' || ['В новом редакторе уже есть вложения. Проверьте прежний черновик VK.','Предпросмотр VK не подтвердил утверждённый текст.'].includes(j.note) && j.resumeImagePreparation && (j.preparationRetryOrigin === 'image-upload-readiness' || j.previousPreparationNote === 'VK не подтвердил готовность фотографии. Запись не отправлена.'));
-    if (j.status === 'draft' || retryImage) {
-      const send = node('button', retryImage ? 'Повторить подготовку фотографии' : j.mode === 'scheduled' ? 'Утвердить и передать в отложенные VK' : 'Утвердить и опубликовать'); send.type = 'button'; send.disabled = busy || !vkReady;
+    if (j.format && j.status === 'draft') {
+      article.append(node('p', 'Черновик сохранён. Отправка в VK ещё проверяется.', 'hint'));
+    } else if (j.poll && j.status === 'draft' && !state?.capabilities?.pollPublish) {
+      article.append(node('p', 'Опрос сохранён для предпросмотра. Отправка в VK ещё проверяется.', 'hint'));
+    } else if (j.images && j.status === 'draft' && !state?.capabilities?.carouselPublish) {
+      article.append(node('p', 'Карусель сохранена для предпросмотра. Отправка в VK ещё проверяется.', 'hint'));
+    } else if (j.status === 'draft' || retryImage) {
+      const send = node('button', retryImage ? 'Повторить подготовку фотографии' : j.repeatSlots ? 'Утвердить серию' : j.mode === 'scheduled' ? 'Утвердить и передать в отложенные VK' : 'Утвердить и опубликовать'); send.type = 'button'; send.disabled = busy || !vkReady;
       send.addEventListener('click', () => work(async () => { await api(`/api/jobs/${j.id}/approve`, { reviewHash: j.reviewHash }); await refresh(); notify('Запись утверждена. VPS выполнит проверку редактора и отправку. Результат появится в очереди.'); })); controls.append(send);
     }
     if (['draft', 'approved', 'blocked'].includes(j.status)) {
       const cancel = node('button', 'Отменить до отправки', 'secondary'); cancel.type = 'button'; cancel.disabled = busy; cancel.addEventListener('click', () => work(async () => { await api(`/api/jobs/${j.id}/cancel`, {}); await refresh(); })); controls.append(cancel);
     }
+    if (j.autoDelete && (!j.deletion || j.deletion.status === 'pending') && j.status !== 'cancelled') {
+      const cancelDeletion = node('button', 'Отменить автоудаление', 'secondary');
+      cancelDeletion.type = 'button'; cancelDeletion.disabled = busy;
+      cancelDeletion.addEventListener('click', () => work(async () => {
+        await api('/api/jobs/' + j.id + '/cancel-deletion', {});
+        await refresh();
+      }));
+      controls.append(cancelDeletion);
+    }
+    if (j.repeatRoot && jobs.some(job => job.repeatRoot === j.repeatRoot && job.status === 'approved')) {
+      const stop = node('button', 'Остановить серию', 'secondary');
+      stop.type = 'button'; stop.disabled = busy;
+      stop.addEventListener('click', () => work(async () => {
+        await api('/api/jobs/' + j.repeatRoot + '/stop-repeat', {});
+        await refresh();
+      }));
+      controls.append(stop);
+    }
     if (/^https:\/\/vk\.ru\/wall-\d+_\d+$/.test(j.result?.url ?? '')) { const a = node('a', 'Открыть подтверждённую запись в VK ↗'); a.href = j.result.url; a.target = '_blank'; a.rel = 'noreferrer'; controls.append(a); }
     article.append(controls); $('jobs').append(article);
   }
 }
+function publicationLabel(value) {
+  return new Date(value).toLocaleString('ru-RU', { timeZone: zone }) + ' · Екатеринбург';
+}
+function updateFormat() {
+  const supported = Boolean(state?.capabilities?.verticalDrafts);
+  const format = supported ? $('post-format').value : 'post';
+  const isPost = format === 'post';
+  const showVideo = supported && !isPost;
+  $('post-format-field').hidden = !supported;
+  $('post-image-field').hidden = format === 'clip';
+  $('post-video-field').hidden = !showVideo;
+  $('post-video').disabled = !showVideo || busy;
+  $('post-format-hint').hidden = !showVideo;
+  $('post-image').multiple = isPost && Boolean(state?.capabilities?.carouselDraft);
+  writeContext('post-image-title', $('post-image').multiple ? 'Фото или карусель' : 'Картинка');
+  $('poll-settings').hidden = !isPost || !state?.capabilities?.pollDraft;
+  $('post-text').required = isPost && ($('poll-settings').hidden || !$('poll-question').value.trim());
+  updateRepeat();
+}
+function updateRepeat() {
+  const scheduled = $('post-mode').value === 'scheduled';
+  const isPost = $('post-format').value === 'post';
+  const active = isPost && scheduled && Boolean($('repeat-cadence').value);
+  const until = $('repeat-limit').value === 'date';
+  $('repeat-settings').hidden = !isPost || !scheduled || !state?.capabilities?.repeat;
+  $('deletion-settings').hidden = !isPost || !state?.capabilities?.autoDelete;
+  $('delete-after').disabled = $('deletion-settings').hidden;
+  $('repeat-limit-label').hidden = !active;
+  $('repeat-count-label').hidden = !active || until;
+  $('repeat-end-label').hidden = !active || !until;
+  $('repeat-count').disabled = !active || until;
+  $('repeat-end').disabled = !active || !until;
+  $('repeat-end').required = active && until;
+}
 function updateMode() {
+  updateRepeat();
   const scheduled = $('post-mode').value === 'scheduled';
   $('time-label').hidden = !scheduled;
   $('post-time').required = scheduled;
   renderComposerContext();
 }
-function draftFromForm() { return { groupId: Number($('group').value), text: $('post-text').value, mode: $('post-mode').value, publishAt: $('post-mode').value === 'scheduled' ? $('post-time').value + ':00+05:00' : null }; }
+function draftFromForm() {
+  const mode = $('post-mode').value;
+  const cadence = $('repeat-cadence').value;
+  const value = { groupId: Number($('group').value), text: $('post-text').value, mode,
+    publishAt: mode === 'scheduled' ? $('post-time').value + ':00+05:00' : null };
+  const question = $('poll-question').value.trim();
+  const options = $('poll-options').value.split(/\r?\n/).map(item => item.trim()).filter(Boolean);
+  if (!$('poll-settings').hidden && (question || options.length)) value.poll = { question, options };
+  if (!$('deletion-settings').hidden && $('delete-after').value) value.autoDelete = Number($('delete-after').value);
+  if (!$('repeat-settings').hidden && cadence) {
+    value.repeat = $('repeat-limit').value === 'date' ? { cadence, end: $('repeat-end').value }
+      : { cadence, count: Number($('repeat-count').value) };
+  }
+  return value;
+}
 $('connect-form').addEventListener('submit', event => { event.preventDefault(); const password = $('owner-password').value; const nextOrigin = $('server-url').value.trim(); work(async () => {
   clearSession(); origin = endpoint(nextOrigin); const result = await api('/api/login', { password }); token = result.token; expiresAt = result.expiresAt; $('owner-password').value = '';
   try { localStorage.setItem('content-planner:vps-origin', origin); } catch {}
@@ -223,9 +341,42 @@ $('load-groups').addEventListener('click',()=>work(async()=>{
   await loadGroups(true);
   if ($('group').value) updateSelectedGroup();
 }));
-$('post-form').addEventListener('submit', event => { event.preventDefault(); work(async () => { const value = draftFromForm(), file = $('post-image').files[0]; if (file) { if (!['image/png','image/jpeg'].includes(file.type) || file.size > 5 * 1024 * 1024) throw new Error('Выберите PNG или JPEG до 5 МБ.'); const uploaded = await api('/api/media', file, false, file.type); value.mediaId = uploaded.media.id; } await api('/api/jobs', value); await refresh(); clearImage(); $('group').value = ''; updateSelectedGroup(); selectPanel('queue', true); notify('Предпросмотр сохранён на VPS. Проверьте группу, текст и время; отправка начнётся только после утверждения записи в очереди.'); }); });
+$('post-form').addEventListener('submit', event => {
+  event.preventDefault();
+  work(async () => {
+    const value = draftFromForm(), mediaIds = [];
+    const format = state?.capabilities?.verticalDrafts ? $('post-format').value : 'post';
+    const video = $('post-video').files[0];
+    if (format !== 'post') {
+      value.format = format;
+      if (format === 'clip' && !video || format === 'story' && Boolean(video) === Boolean(photoFiles.length)) {
+        throw new Error('Для истории выберите фото или видео, для клипа — видео.');
+      }
+      if (video) {
+        if (!['video/mp4',''].includes(video.type) || video.size > 25 * 1024 * 1024) throw new Error('Выберите видео MP4 до 25 МБ.');
+        value.videoId = (await api('/api/media', video, false, 'video/mp4')).media.id;
+      }
+    }
+    for (const file of photoFiles) mediaIds.push((await api('/api/media', file, false, file.type)).media.id);
+    if (mediaIds.length === 1) value.mediaId = mediaIds[0];
+    if (mediaIds.length > 1) value.mediaIds = mediaIds;
+    await api('/api/jobs', value);
+    await refresh();
+    clearImage(); clearVideo(); $('poll-question').value = ''; $('poll-options').value = ''; $('poll-settings').open = false;
+    $('repeat-cadence').value = ''; $('delete-after').value = '';
+    updateFormat();
+    $('group').value = ''; updateSelectedGroup();
+    selectPanel('queue', true);
+    notify('Предпросмотр сохранён на VPS.');
+  });
+});
 $('post-mode').addEventListener('change', updateMode);
-$('post-form').addEventListener('input', renderComposerContext);
+$('repeat-cadence').addEventListener('change', updateRepeat);
+$('repeat-limit').addEventListener('change', updateRepeat);
+$('post-form').addEventListener('input', () => {
+  if ($('post-format').value === 'post') $('post-text').required = $('poll-settings').hidden || !$('poll-question').value.trim();
+  renderComposerContext();
+});
 $('group').addEventListener('change', updateSelectedGroup);
 $('refresh').addEventListener('click', () => work(refresh));
 $('import-plan').addEventListener('click', () => work(async () => {
@@ -300,7 +451,7 @@ function writeContext(id, value) {
 
 function renderComposerContext() {
   const textLength = $('post-text').value.length;
-  const hasPhoto = Boolean($('post-image').files.length);
+  const hasMedia = photoFiles.length > 0 || Boolean($('post-video').files.length);
   const group = groups.find(item => String(item.id) === $('group').value);
   const scheduled = $('post-mode').value === 'scheduled';
   const time = scheduled ? $('post-time').value : '';
@@ -313,8 +464,8 @@ function renderComposerContext() {
     : !group ? (groups.length ? 'Выберите сообщество для предпросмотра.' : 'Предпросмотр станет доступен после загрузки и выбора сообщества.')
     : 'Запись отправится после утверждения в очереди.');
   writeContext('composer-length', textLength.toLocaleString('ru-RU') + ' / 2 000');
-  writeContext('composer-photo', hasPhoto ? 'Добавлено' : '—');
-  writeContext('composer-next', !textLength ? 'Добавьте текст записи.' : scheduled && !time ? 'Укажите дату и время.'
+  writeContext('composer-photo', hasMedia ? 'Добавлено' : '—');
+  writeContext('composer-next', $('post-text').required && !textLength ? 'Добавьте текст записи.' : scheduled && !time ? 'Укажите дату и время.'
     : time ? new Date(time + ':00+05:00').toLocaleString('ru-RU', {timeZone: zone, day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'}) + ' · Екатеринбург'
     : 'Создайте предпросмотр для утверждения.');
 }
@@ -439,9 +590,14 @@ function renderEditorialRows(focusRow = false) {
 function openEditorialPost(post) {
   if (busy || !state?.browser.authenticated || !groups.length) return;
   const currentText = $('post-text').value;
-  if (((currentText && currentText !== post.text) || $('post-image').files.length)
-    && !window.confirm('Заменить текст и убрать выбранное изображение в редакторе?')) return;
+  if (((currentText && currentText !== post.text) || photoFiles.length || $('post-video').files.length)
+    && !window.confirm('Заменить содержимое редактора записью из плана?')) return;
   clearImage();
+  clearVideo();
+  $('post-format').value = 'post';
+  $('repeat-cadence').value = ''; $('delete-after').value = '';
+  $('poll-question').value = ''; $('poll-options').value = ''; $('poll-settings').open = false;
+  updateFormat();
   $('post-text').value = post.text;
   $('post-mode').value = 'scheduled';
   $('post-time').value = localPublicationTime(post.date, post.time);
@@ -571,6 +727,84 @@ window.addEventListener('pageshow', event => {
 updateMode(); render();
 try {const target=endpoint($('server-url').value);const saved=restoreTabSession(tabStorage,target);if(saved){origin=saved.origin;token=saved.token;expiresAt=saved.expiresAt;await work(() => initializeConnected({ showConnections: true }));}}catch{clearTabSession(tabStorage);}
 
-function clearImage() { if (imagePreview) URL.revokeObjectURL(imagePreview); imagePreview = ''; $('post-image').value = ''; $('image-preview').hidden = true; $('image-preview').removeAttribute('src'); $('clear-image').hidden = true; renderComposerContext(); }
-$('post-image').addEventListener('change', () => { if (imagePreview) URL.revokeObjectURL(imagePreview); imagePreview = ''; const file = $('post-image').files[0]; if (!file) { clearImage(); return; } if (!['image/png','image/jpeg'].includes(file.type) || file.size > 5 * 1024 * 1024) { clearImage(); notify('Выберите PNG или JPEG до 5 МБ.', true); return; } imagePreview = URL.createObjectURL(file); $('image-preview').src = imagePreview; $('image-preview').hidden = false; $('clear-image').hidden = false; renderComposerContext(); });
+function renderPhotoFiles() {
+  if (imagePreview) URL.revokeObjectURL(imagePreview);
+  imagePreview = '';
+  const single = $('image-preview'), gallery = $('carousel-preview');
+  for (const image of gallery.querySelectorAll('img')) URL.revokeObjectURL(image.src);
+  gallery.replaceChildren();
+  gallery.hidden = photoFiles.length < 2;
+  single.hidden = photoFiles.length !== 1;
+  single.removeAttribute('src');
+  if (photoFiles.length === 1) {
+    imagePreview = URL.createObjectURL(photoFiles[0]);
+    single.src = imagePreview;
+  } else {
+    photoFiles.forEach((file, index) => {
+      const card = node('div', null, 'carousel-card');
+      const picture = node('img', null, 'post-image');
+      picture.alt = 'Карточка ' + (index + 1);
+      picture.src = URL.createObjectURL(file);
+      const actions = node('div', null, 'controls');
+      for (const [label, offset] of [['Раньше', -1], ['Позже', 1], ['Убрать', 0]]) {
+        const button = node('button', label, 'secondary');
+        button.type = 'button';
+        button.setAttribute('aria-label', label + ' · карточка ' + (index + 1));
+        button.disabled = index + offset < 0 || index + offset >= photoFiles.length;
+        button.addEventListener('click', () => {
+          if (!offset) photoFiles.splice(index, 1);
+          else [photoFiles[index], photoFiles[index + offset]] = [photoFiles[index + offset], photoFiles[index]];
+          renderPhotoFiles();
+        });
+        actions.append(button);
+      }
+      card.append(picture, actions);
+      gallery.append(card);
+    });
+  }
+  $('clear-image').hidden = photoFiles.length === 0;
+  renderComposerContext();
+}
+function clearImage() {
+  photoFiles = [];
+  $('post-image').value = '';
+  renderPhotoFiles();
+}
+$('post-image').addEventListener('change', () => {
+  const files = [...$('post-image').files];
+  if (files.length > ($('post-image').multiple ? 10 : 1) || files.some(file => !['image/png','image/jpeg'].includes(file.type) || file.size > 5 * 1024 * 1024)) {
+    $('post-image').value = '';
+    notify('Выберите до 10 изображений PNG или JPEG по 5 МБ.', true);
+    return;
+  }
+  photoFiles = files;
+  renderPhotoFiles();
+});
 $('clear-image').addEventListener('click', clearImage);
+
+function clearVideo() {
+  if (videoPreview) URL.revokeObjectURL(videoPreview);
+  videoPreview = '';
+  $('post-video').value = '';
+  $('post-video-preview').hidden = true;
+  $('post-video-preview').removeAttribute('src');
+}
+$('post-format').addEventListener('change', () => {
+  clearImage();
+  clearVideo();
+  updateFormat();
+  renderComposerContext();
+});
+$('post-video').addEventListener('change', () => {
+  if (videoPreview) URL.revokeObjectURL(videoPreview);
+  videoPreview = '';
+  const file = $('post-video').files[0];
+  if (!file) { clearVideo(); renderComposerContext(); return; }
+  if (!['video/mp4', ''].includes(file.type) || file.size > 25 * 1024 * 1024) {
+    clearVideo(); notify('Выберите видео MP4 до 25 МБ.', true); return;
+  }
+  videoPreview = URL.createObjectURL(file);
+  $('post-video-preview').src = videoPreview;
+  $('post-video-preview').hidden = false;
+  renderComposerContext();
+});
