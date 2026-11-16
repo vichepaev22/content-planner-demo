@@ -1,11 +1,18 @@
 import {saveTabSession,restoreTabSession,clearTabSession} from './tab-session.mjs';
 import { googleSheetCsvUrl, localPublicationTime, parseEditorialPlan, PLAN_MAX_BYTES } from './editorial-plan.mjs';
 import { mountOutreach } from './outreach-workspace.mjs?v=r22';
-import { mountCampaign } from './campaign-workspace.mjs?v=chg033-search';
+import { mountCampaign } from './campaign-workspace.mjs?v=chg034-beta';
 import { mountWorkspaceSearch } from './workspace-search.mjs?v=chg033-drafts';
 const tabStorage=(()=>{try{return sessionStorage;}catch{return null;}})();
 const $ = id => document.getElementById(id);
 const zone = 'Asia/Yekaterinburg';
+const params = new URLSearchParams(location.search);
+const requestedWorkspace = params.get('workspace');
+const betaWorkspace = /^beta-[12]$/.test(requestedWorkspace ?? '') ? requestedWorkspace : null;
+const invalidWorkspace = params.has('workspace') && !betaWorkspace;
+const defaultEndpoint = 'https://31.76.80.185/content-planner-api';
+const betaEndpoint = betaWorkspace ? 'https://31.76.80.185/content-planner-beta/' + betaWorkspace : null;
+const workspaceTitle = betaWorkspace ? 'Тестовый кабинет ' + betaWorkspace.at(-1) : 'Ваш кабинет';
 let imagePreview = '', videoPreview = '';
 let photoFiles = [];
 const mediaUrls = new Map(), mediaLoads = new Map();
@@ -28,6 +35,7 @@ function endpoint(value) {
   return u.origin + u.pathname.replace(/\/$/, '');
 }
 function clearSession() {
+  showLoginError();
   searchUi.clear();
   resetEditorialPlan();
   activePanel = entryPanel;
@@ -62,7 +70,7 @@ async function api(path, body, binary = false, mediaType = null) {
       clearSession();
       notify(message, true);
     }
-    throw new Error(message);
+    throw new Error(message, { cause: response.status });
   }
   return data;
 }
@@ -79,16 +87,18 @@ function render() {
   const connected = Boolean(token && expiresAt > Date.now()), vkReady = connected && state?.browser.authenticated;
   const challenge = state?.browser.authChallenge; $('vk-code-form').hidden = !connected || vkReady || !challenge; $('submit-vk-code').disabled = busy || !challenge; $('vk-login-code').disabled = busy || !challenge;
   if (challenge) { $('vk-login-code').minLength = challenge.minLength; $('vk-login-code').maxLength = challenge.maxLength; $('vk-login-code').pattern = `[0-9]{${challenge.minLength},${challenge.maxLength}}`; }
-  $('server-title').textContent = connected ? 'VPS подключён' : 'Подключить VPS';
-  $('connect-form').hidden = connected; $('disconnect').disabled = !connected || busy;
-  $('server-url').disabled = busy; $('connect').disabled = busy;
+  $('server-title').textContent = connected ? 'Кабинет подключён' : workspaceTitle;
+  $('server-status').hidden = !connected;
+  $('connect').textContent = !connected && signingIn ? 'Входим…' : 'Войти';
+  $('connect-form').hidden = connected || invalidWorkspace; $('disconnect').disabled = !connected || busy;
+  $('server-url').disabled = busy || Boolean(betaEndpoint); $('connect').disabled = busy || invalidWorkspace;
   for (const id of ['start-browser', 'show-qr', 'refresh']) $(id).disabled = !connected || busy || Boolean(state?.workerBusy) || (id !== 'refresh' && Boolean(state?.browser.setupBlocked));
   $('load-groups').disabled = !connected || busy || Boolean(vkReady && state?.workerBusy);
   writeContext('load-groups', vkReady ? 'Обновить сообщества' : 'Подключить VK');
   $('group').disabled = !vkReady || !groups.length || busy;
   for (const id of ['post-text', 'post-mode', 'post-image', 'clear-image']) $(id).disabled = !connected || busy;
-  $('server-status').textContent = connected ? 'Сеанс в этой вкладке до ' + new Date(expiresAt).toLocaleTimeString('ru-RU', { timeZone: zone }) + ' (Екатеринбург).' : 'Подключения пока нет.';
-  $('vk-status').textContent = !connected ? 'VK и сообщества подключатся после входа в кабинет.' : state?.browser.setupBlocked ? 'Сервер готов. Настройка браузера ещё не завершена; публикация пока недоступна.' : vkReady ? (groups.length?'VK подключён. Сообщества готовы к публикации.':'VK подключён. Загружаем сообщества.') : state?.browser.started ? 'VK ожидает входа владельца на VPS. Обновите экран и подтвердите вход телефоном.' : 'Сервер подключён. Нажмите «Открыть VK на VPS».';
+  $('server-status').textContent = connected ? 'Сеанс до ' + new Date(expiresAt).toLocaleTimeString('ru-RU', { timeZone: zone }) + ' (Екатеринбург).' : 'Подключения пока нет.';
+  $('vk-status').textContent = !connected ? 'VK и сообщества подключатся после входа в кабинет.' : state?.browser.setupBlocked ? 'Сервер готов. Настройка браузера ещё не завершена; публикация пока недоступна.' : vkReady ? (groups.length?'VK подключён. Сообщества готовы к публикации.':'VK подключён. Загружаем сообщества.') : state?.browser.started ? 'VK ожидает входа владельца на VPS. Обновите экран и подтвердите вход телефоном.' : 'Нажмите «Подключить VK».';
   if (vkReady) { $('vk-login-code').value = ''; $('enlarge-auth').hidden = true; $('auth-dialog').close(); $('auth-large').removeAttribute('src'); }
   if (vkReady && screenshotUrl) { URL.revokeObjectURL(screenshotUrl); screenshotUrl = ''; $('auth-screen').hidden = true; $('auth-hint').hidden = true; $('auth-screen').removeAttribute('src'); }
   $('start-browser').hidden=Boolean(vkReady);$('show-qr').hidden=Boolean(vkReady);
@@ -260,11 +270,47 @@ function draftFromForm() {
   }
   return value;
 }
-$('connect-form').addEventListener('submit', event => { event.preventDefault(); const password = $('owner-password').value; const nextOrigin = $('server-url').value.trim(); work(async () => {
-  clearSession(); origin = endpoint(nextOrigin); const result = await api('/api/login', { password }); token = result.token; expiresAt = result.expiresAt; $('owner-password').value = '';
-  try { localStorage.setItem('content-planner:vps-origin', origin); } catch {}
-  saveTabSession(tabStorage,{origin,token,expiresAt}); await initializeConnected({ showConnections: true });
-}); });
+let signingIn = false;
+const passwordField = $('owner-password');
+function showLoginError(message = '') {
+  $('login-error').textContent = message;
+  passwordField.setAttribute('aria-invalid', String(Boolean(message)));
+  if (message) passwordField.setAttribute('aria-describedby', 'login-error');
+  else passwordField.removeAttribute('aria-describedby');
+}
+passwordField.addEventListener('input', () => showLoginError());
+$('connect-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  if (busy || invalidWorkspace) return;
+  let password = passwordField.value;
+  const nextOrigin = betaEndpoint ?? $('server-url').value.trim();
+  showLoginError();
+  signingIn = true;
+  await work(async () => {
+    clearSession();
+    origin = endpoint(nextOrigin);
+    let result;
+    try {
+      result = await api('/api/login', { password });
+    } catch (error) {
+      if (error.cause !== 401) throw error;
+      showLoginError(error.message);
+      return;
+    } finally {
+      password = '';
+      signingIn = false;
+    }
+    token = result.token;
+    expiresAt = result.expiresAt;
+    if (!betaWorkspace) { try { localStorage.setItem('content-planner:vps-origin', origin); } catch {} }
+    saveTabSession(tabStorage, { origin, token, expiresAt });
+    await initializeConnected({ showConnections: true });
+    if (token && document.activeElement === document.body) $('panel-' + activePanel).querySelector('h1').focus();
+  });
+  signingIn = false;
+  render();
+  if (passwordField.getAttribute('aria-invalid') === 'true') passwordField.focus();
+});
 $('disconnect').addEventListener('click', async () => {
   await work(async () => {
     try {
@@ -319,16 +365,16 @@ async function initializeConnected({ showConnections = false } = {}) {
   await refresh();
   if(state.browser.setupBlocked){if(showConnections) selectPanel('connections', true);notify('Настройка браузера на VPS ещё не завершена.');return;}
   if(state.workerBusy||state.browser.busy){notify('Сеанс восстановлен. VPS выполняет утверждённое задание.');return;}
-  if(!state.browser.started){notify('Открываем сохранённый профиль VK на VPS.');await api('/api/browser/start',{});}
+  if(!state.browser.started){notify('Открываем VK…');await api('/api/browser/start',{});}
   for(let n=0;n<20;n++) {
     await refresh();if(state.browser.authenticated)break;
     await new Promise(resolve=>setTimeout(resolve,750));
   }
   if(state.browser.authenticated){await loadGroups();notify('');}
   else {
-    if (showConnections && ['plan','campaign'].includes(activePanel)) selectPanel('connections', true);
+    if (showConnections && (betaWorkspace || ['plan','campaign'].includes(activePanel))) selectPanel('connections', true);
     await screen();
-    notify('VK запросил подтверждение входа. Подтвердите его телефоном.');
+    notify('Подтвердите вход в VK с телефона.');
   }
 }
 $('load-groups').addEventListener('click',()=>work(async()=>{
@@ -389,7 +435,7 @@ $('import-plan').addEventListener('click', () => work(async () => {
 }));
 
 const navigation = [...document.querySelectorAll('[data-panel]')];
-const requestedPanel = new URLSearchParams(location.search).get('section');
+const requestedPanel = params.get('section');
 const entryPanel = navigation.some(button => button.dataset.panel === requestedPanel) ? requestedPanel : 'campaign';
 let activePanel = entryPanel;
 const serverCard = $('server-card');
@@ -434,7 +480,7 @@ function renderWorkspace(connected, ready) {
   if (!connected && notice.previousElementSibling !== $('entry')) $('entry').after(notice);
   selectPanel(activePanel);
   renderContext(connected);
-  campaignUi.updateConnection(connected, ready);
+  campaignUi.updateConnection(connected, ready, betaWorkspace ? groups : null);
   outreachUi.updateConnection(connected, Boolean(connected&&state?.browser.authenticated));
   renderVkIndicator(ready);
   const prepare = $('prepare-editorial-post');
@@ -696,7 +742,21 @@ const searchUi = mountWorkspaceSearch({
     return true;
   }
 });
-try { $('server-url').value = localStorage.getItem('content-planner:vps-origin') || 'https://31.76.80.185/content-planner-api'; } catch {}
+$('server-url').value = betaEndpoint ?? defaultEndpoint;
+$('server-advanced').hidden = Boolean(betaWorkspace);
+if (betaWorkspace) {
+  $('workspace-label').textContent = workspaceTitle;
+  const brand = $('planner-brand');
+  brand.href = '?workspace=' + betaWorkspace;
+  brand.setAttribute('aria-label', 'Content Planner, ' + workspaceTitle);
+}
+if (!requestedWorkspace) {
+  try { $('server-url').value = localStorage.getItem('content-planner:vps-origin') || defaultEndpoint; } catch {}
+}
+if (invalidWorkspace) {
+  $('connect-form').hidden = true;
+  notify('Не удалось распознать кабинет. Откройте ссылку из приглашения.', true);
+}
 function initialPublicationTime() {
   const defaultTime = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(Date.now() + 600000)).filter(p => p.type !== 'literal').map(p => [p.type, p.value]));
   return `${defaultTime.year}-${defaultTime.month}-${defaultTime.day}T${defaultTime.hour}:${defaultTime.minute}`;
@@ -706,7 +766,7 @@ setInterval(async () => {
   if (!token || busy || document.hidden) return;
   if (expiresAt <= Date.now()) {
     clearSession();
-    notify('Сеанс Content Planner истёк. Войдите снова отдельным паролем сервера.');
+    notify('Сеанс истёк. Войдите снова в Content Planner.');
     return;
   }
   const session = token;
@@ -725,7 +785,7 @@ window.addEventListener('pageshow', event => {
   if (event.persisted && token && restoreTabSession(tabStorage, origin)?.token !== token) location.reload();
 });
 updateMode(); render();
-try {const target=endpoint($('server-url').value);const saved=restoreTabSession(tabStorage,target);if(saved){origin=saved.origin;token=saved.token;expiresAt=saved.expiresAt;await work(() => initializeConnected({ showConnections: true }));}}catch{clearTabSession(tabStorage);}
+try {const target=invalidWorkspace ? '' : endpoint(betaEndpoint ?? $('server-url').value);const saved=restoreTabSession(tabStorage,target);if(saved){origin=saved.origin;token=saved.token;expiresAt=saved.expiresAt;await work(() => initializeConnected({ showConnections: true }));}}catch{clearTabSession(tabStorage);}
 
 function renderPhotoFiles() {
   if (imagePreview) URL.revokeObjectURL(imagePreview);

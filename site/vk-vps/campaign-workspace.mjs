@@ -91,7 +91,8 @@ export function mountCampaign({api,selectPanel,refreshQueue,onChange}) {
   const syncFrequencySlider = mountFrequencySlider($('cp-frequency'));
   let current=null, groups=[], view='brief', connected=false, ready=false, busy=false, loaded=false, epoch=0, selected=null;
   const readGoal=()=>document.querySelector('[name="cp-goal"]:checked').value;
-  const matchGroup=id=>groups.find(group=>group.id===id);
+  const matchGroup = id => groups.find(group => group.id === id)
+    ?? (current?.managedGroup?.id === id ? current.managedGroup : undefined);
   const notice=(message,error=false)=>{ $('cp-status').textContent=message; $('cp-status').hidden=!message; $('cp-status').classList.toggle('error',error); };
   const errorAt=(id,message)=>{ $(id).textContent=message; $(id).hidden=!message; };
   const active=requestEpoch=>connected&&epoch===requestEpoch;
@@ -151,12 +152,17 @@ export function mountCampaign({api,selectPanel,refreshQueue,onChange}) {
       if(active(requestEpoch)) { busy=false; controls(); }
     }
   }
+  let managedGroups = null;
+  function fillGroups(preferred) {
+    const select = $('cp-group');
+    const options = groups.map(group => new Option(group.name, group.id));
+    if (managedGroups) options.unshift(new Option('Выберите сообщество', ''));
+    select.replaceChildren(...options);
+    if (groups.some(group => String(group.id) === preferred)) select.value = preferred;
+  }
   function fillForm() {
-    $('cp-group').replaceChildren(...groups.map(group=>{
-      const option=node('option',group.name); option.value=group.id; return option;
-    }));
+    fillGroups(current ? String(current.groupId) : '');
     if(current) {
-      $('cp-group').value=String(current.groupId);
       document.querySelector('[name="cp-goal"][value="'+current.goal+'"]').checked=true;
       $('cp-duration').value=current.duration; $('cp-start').value=current.start;
       $('cp-frequency').value=current.frequency; $('cp-subject').value=current.subject;
@@ -170,7 +176,7 @@ export function mountCampaign({api,selectPanel,refreshQueue,onChange}) {
     syncFrequencySlider();
     $('cp-frequency-label').textContent=label; $('cp-frequency').setAttribute('aria-valuetext',label);
     renderSummary();
-    $('cp-group-link').textContent=matchGroup(Number($('cp-group').value))?.url??'На VPS пока нет настроенного сообщества.';
+    $('cp-group-link').textContent=matchGroup(Number($('cp-group').value))?.url??(managedGroups ? (groups.length ? 'Выберите сообщество для плана.' : 'Подключите VK и дождитесь списка сообществ.') : 'На VPS пока нет настроенного сообщества.');
     $('cp-brief-hint').textContent=hints[readGoal()];
     $('cp-offer-end-field').hidden=readGoal()!=='promo'; $('cp-offer-end').required=readGoal()==='promo';
     controls();
@@ -180,7 +186,7 @@ export function mountCampaign({api,selectPanel,refreshQueue,onChange}) {
       notice('Загружаем план с VPS…');
       const result=await api('/api/campaign');
       if(!active(requestEpoch)) return;
-      groups=result.groups; current=result.campaign; loaded=true; fillForm();
+      groups=managedGroups ?? result.groups; current=result.campaign; loaded=true; fillForm();
       if(current) renderPlan();
       else onChange?.();
       setView(current?(current.queueIds?'posts':'calendar'):'brief');
@@ -336,8 +342,19 @@ export function mountCampaign({api,selectPanel,refreshQueue,onChange}) {
       openEditor(post);
       return true;
     },
-    updateConnection(nextConnected,nextReady) {
+    updateConnection(nextConnected, nextReady, nextGroups = null) {
       ready=nextReady;
+      if (nextGroups !== managedGroups) {
+        managedGroups = nextGroups;
+        if (nextConnected && nextGroups) {
+          const preferred = $('cp-group').value;
+          groups = nextGroups;
+          if (loaded) {
+            fillGroups(preferred);
+            updateForm();
+          }
+        }
+      }
       if (nextConnected!==connected) {
         connected=nextConnected; epoch++;
         if(connected) load();
