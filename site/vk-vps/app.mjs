@@ -1,7 +1,7 @@
 import {saveTabSession,restoreTabSession,clearTabSession} from './tab-session.mjs';
 import { googleSheetCsvUrl, localPublicationTime, parseEditorialPlan, PLAN_MAX_BYTES } from './editorial-plan.mjs';
 import { mountOutreach } from './outreach-workspace.mjs?v=r22';
-import { mountCampaign } from './campaign-workspace.mjs?v=chg034-beta';
+import { mountCampaign } from './campaign-workspace.mjs?v=chg035-scenarios';
 import { mountWorkspaceSearch } from './workspace-search.mjs?v=chg033-drafts';
 const tabStorage=(()=>{try{return sessionStorage;}catch{return null;}})();
 const $ = id => document.getElementById(id);

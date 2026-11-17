@@ -90,6 +90,15 @@ function mountFrequencySlider(input) {
 export function mountCampaign({api,selectPanel,refreshQueue,onChange}) {
   const syncFrequencySlider = mountFrequencySlider($('cp-frequency'));
   let current=null, groups=[], view='brief', connected=false, ready=false, busy=false, loaded=false, epoch=0, selected=null;
+  let editorialEnabled = false, generationTimer;
+  let generationPolls = 0;
+  const scenarioFields = {
+    launch: ['Что меняется для клиента', 'Например, кому подходит услуга и как проходит первый визит.'],
+    regular: ['Рубрики и вопросы подписчиков', 'Например, советы тренера, вопросы новичков и жизнь бассейна.'],
+    promotion: ['Выгода и ограничения акции', 'Например, кому доступна скидка и на какие услуги она действует.'],
+    event: ['Программа и место проведения', 'Например, что входит в программу, где встречаемся и кто может прийти.'],
+    sales: ['Причины выбрать предложение', 'Например, что входит, с чем сравнивают и какие вопросы задают перед покупкой.']
+  };
   const readGoal=()=>document.querySelector('[name="cp-goal"]:checked').value;
   const matchGroup = id => groups.find(group => group.id === id)
     ?? (current?.managedGroup?.id === id ? current.managedGroup : undefined);
@@ -121,18 +130,22 @@ export function mountCampaign({api,selectPanel,refreshQueue,onChange}) {
       : 'Проверьте тексты и передайте план в очередь.';
   }
   function controls() {
+    const preparing = current?.generation?.status === 'generating';
+    const flagged = current?.posts.some(post => post.warnings?.length);
     const inQueue=Boolean(current?.queueIds);
     $('cp-feed').disabled=busy||!ready||!$('cp-group').value;
-    $('cp-generate').disabled=busy||!$('cp-group').value;
+    $('cp-generate').disabled=busy||preparing||!$('cp-group').value;
     $('cp-reload').disabled=busy;
     $('cp-return').disabled=busy;
     $('cp-group').disabled=busy;
-    for (const id of ['cp-time-open','cp-edit-save','cp-time-save','cp-calendar-confirm']) $(id).disabled=busy||inQueue;
-    $('cp-queue-open').disabled=busy||!ready||!current?.calendarConfirmed;
+    for (const id of ['cp-time-open','cp-edit-save','cp-time-save','cp-calendar-confirm']) $(id).disabled=busy||preparing||inQueue;
+    $('cp-queue-open').disabled=busy||preparing||flagged||!ready||!current?.calendarConfirmed;
     $('cp-queue-open').hidden=inQueue;
     $('cp-open-queue').hidden=!inQueue;
-    $('cp-queue-send').disabled=busy||!ready||inQueue;
+    $('cp-queue-send').disabled=busy||preparing||flagged||!ready||inQueue;
     $('cp-queue-hint').textContent=inQueue?'План уже в очереди. Отдельные записи можно отменить до отправки.'
+      :preparing?'Готовим тексты.'
+      :flagged?'Уточните факты в отмеченных публикациях или обновите бриф.'
       :!ready?'Для передачи плана подключите VK в разделе «Подключения».':'Прочитайте тексты перед утверждением. Сохранение правок оставляет план в кабинете.';
   }
   async function work(fn,dialogError) {
@@ -160,7 +173,22 @@ export function mountCampaign({api,selectPanel,refreshQueue,onChange}) {
     select.replaceChildren(...options);
     if (groups.some(group => String(group.id) === preferred)) select.value = preferred;
   }
+  function fillEditorial(value) {
+    $('cp-kind').value = value?.kind === 'event' ? 'event' : 'promotion';
+    $('cp-availability').value = value?.availableOn ?? '';
+    $('cp-event-date').value = value?.eventDate ?? '';
+    $('cp-registration').value = value?.registrationEnd ?? '';
+    $('cp-specifics').value = value?.specifics ?? '';
+    $('cp-facts').value = value?.facts?.join('\n') ?? '';
+    $('cp-history').value = value?.history?.join('\n') ?? '';
+  }
+  function editorialBrief() {
+    return { kind: $('cp-kind').value, availableOn: $('cp-availability').value, eventDate: $('cp-event-date').value,
+      registrationEnd: $('cp-registration').value, specifics: $('cp-specifics').value,
+      facts: $('cp-facts').value, history: $('cp-history').value };
+  }
   function fillForm() {
+    fillEditorial(current?.editorial);
     fillGroups(current ? String(current.groupId) : '');
     if(current) {
       document.querySelector('[name="cp-goal"][value="'+current.goal+'"]').checked=true;
@@ -178,7 +206,19 @@ export function mountCampaign({api,selectPanel,refreshQueue,onChange}) {
     renderSummary();
     $('cp-group-link').textContent=matchGroup(Number($('cp-group').value))?.url??(managedGroups ? (groups.length ? 'Выберите сообщество для плана.' : 'Подключите VK и дождитесь списка сообществ.') : 'На VPS пока нет настроенного сообщества.');
     $('cp-brief-hint').textContent=hints[readGoal()];
-    $('cp-offer-end-field').hidden=readGoal()!=='promo'; $('cp-offer-end').required=readGoal()==='promo';
+    const goal = readGoal(), promo = goal === 'promo';
+    const kind = promo && editorialEnabled ? $('cp-kind').value : '';
+    const event = kind === 'event';
+    $('cp-editorial').hidden = !editorialEnabled;
+    $('cp-kind-field').hidden = !promo;
+    $('cp-availability-field').hidden = goal !== 'launch';
+    $('cp-event-fields').hidden = !event;
+    $('cp-event-date').required = event;
+    $('cp-offer-end-field').hidden = !promo || event;
+    $('cp-offer-end').required = promo && !event;
+    const [title, help] = scenarioFields[kind || goal] ?? scenarioFields.promotion;
+    $('cp-specifics-label').textContent = title;
+    $('cp-specifics-hint').textContent = help;
     controls();
   }
   async function load() {
@@ -186,12 +226,35 @@ export function mountCampaign({api,selectPanel,refreshQueue,onChange}) {
       notice('Загружаем план с VPS…');
       const result=await api('/api/campaign');
       if(!active(requestEpoch)) return;
+      editorialEnabled = result.editorial === true;
       groups=managedGroups ?? result.groups; current=result.campaign; loaded=true; fillForm();
-      if(current) renderPlan();
+      if(current) { renderPlan(); monitorGeneration(); }
       else onChange?.();
       setView(current?(current.queueIds?'posts':'calendar'):'brief');
       notice('');
     });
+  }
+  function monitorGeneration() {
+    clearTimeout(generationTimer);
+    if (!connected || current?.generation?.status !== 'generating') return;
+    const expected = current.id;
+    const requestEpoch = epoch;
+    generationTimer = setTimeout(async () => {
+      if (!active(requestEpoch) || current?.id !== expected) return;
+      try {
+        const { campaign } = await api('/api/campaign');
+        if (!active(requestEpoch) || campaign?.id !== expected) return;
+        current = campaign;
+        renderPlan();
+        monitorGeneration();
+      } catch {
+        if (active(requestEpoch) && ++generationPolls <= 3) monitorGeneration();
+        else if (active(requestEpoch)) {
+          notice('Не удалось обновить статус. Откройте план заново.', true);
+          $('cp-reload').hidden = false;
+        }
+      }
+    }, 2500);
   }
   async function save(changes,requestEpoch) {
     const result=await api('/api/campaign/save',{id:current.id,revision:current.revision,times:current.times,posts:current.posts,
@@ -211,7 +274,14 @@ export function mountCampaign({api,selectPanel,refreshQueue,onChange}) {
     renderSummary();
     $('cp-cover-title').textContent=subject;
     $('cp-cover-meta').textContent=names[goal]+' · '+matchGroup(current.groupId)?.name;
-    $('cp-strategy').textContent=strategy[goal];
+    $('cp-strategy').textContent=current.strategy ?? strategy[goal];
+    const generation = current.generation;
+    const status = generation?.status === 'generating' ? 'Готовим темы и тексты…'
+      : generation?.status === 'failed' ? 'Модель не завершила работу. Сохранены черновики по правилам.'
+        : generation?.mode === 'ai' ? 'Черновики подготовлены с помощью ИИ.'
+          : generation ? 'Черновики подготовлены по правилам сценария.' : '';
+    $('cp-generation').hidden = !status;
+    if ($('cp-generation').textContent !== status) $('cp-generation').textContent = status;
     $('cp-default').textContent=times.join(' · ');
     $('cp-calendar-confirm').hidden=Boolean(queueIds);
     $('cp-calendar-confirm').textContent=current.calendarConfirmed?'К текстам постов →':'Подтвердить календарь →';
@@ -224,13 +294,18 @@ export function mountCampaign({api,selectPanel,refreshQueue,onChange}) {
       for(const post of posts) {
         const phase=phases.indexOf(post.phase);
         const button=node('button',null,'cp-event cp-phase-'+phase);
-        button.type='button'; button.append(node('small',post.time),document.createTextNode(post.topic));
+        button.type='button'; button.disabled = current.generation?.status === 'generating';
+        if (post.why) button.title = post.why;
+        button.append(node('small',post.time),document.createTextNode(post.topic));
         button.addEventListener('click',()=>openEditor(post)); day.append(button);
         const card=node('article',null,'card cp-post');
         const title=node('h3',post.topic); const meta=node('p',dateLabel(post.date)+' · '+post.time+' · '+post.phase,'hint');
         const copy=node('p',post.copy,'cp-copy'); const open=node('button',queueIds?'Открыть':'Редактировать','secondary');
-        open.type='button'; open.addEventListener('click',()=>openEditor(post));
-        card.append(title,meta,copy,open); list.append(card);
+        open.type='button'; open.disabled = Boolean(button.disabled); open.addEventListener('click',()=>openEditor(post));
+        card.append(title,meta);
+        if (post.why) card.append(node('p', post.why, 'hint'));
+        if (post.warnings?.length) card.append(node('p', post.warnings.join(' '), 'cp-error'));
+        card.append(copy,open); list.append(card);
       }
       calendar.append(day);
     }
@@ -242,7 +317,11 @@ export function mountCampaign({api,selectPanel,refreshQueue,onChange}) {
     $('cp-edit-when').textContent=date&&time?dateLabel(date)+' · '+time:'';
   }
   function openEditor(post) {
-    if(busy) return;
+    if(busy || current.generation?.status === 'generating') return;
+    $('cp-edit-why').textContent = post.why ?? '';
+    $('cp-edit-why').hidden = !post.why;
+    $('cp-edit-facts').textContent = post.warnings?.join(' ') ?? '';
+    $('cp-edit-facts').hidden = !post.warnings?.length;
     selected=post.id;
     $('cp-editor-group').textContent=matchGroup(current.groupId)?.name??'Сообщество VK';
     $('cp-edit-topic').value=post.topic; $('cp-edit-copy').value=post.copy;
@@ -272,14 +351,18 @@ export function mountCampaign({api,selectPanel,refreshQueue,onChange}) {
   }));
   $('cp-form').addEventListener('submit',event=>{
     event.preventDefault();
+    if (current?.generation?.status === 'generating') return;
     if(current&&!window.confirm('Заменить текущий план новым? Записи, уже переданные в очередь, сохранятся.')) return;
     work(async requestEpoch=>{
+      notice('Составляем календарь…');
       const result=await api('/api/campaign/generate',{goal:readGoal(),groupId:Number($('cp-group').value),
         subject:$('cp-subject').value,brief:$('cp-details').value,conditions:$('cp-conditions').value,cta:$('cp-cta').value,
         offerEnd:$('cp-offer-end').value,start:$('cp-start').value,duration:Number($('cp-duration').value),frequency:Number($('cp-frequency').value),
-        replaceId:current?.id,replaceRevision:current?.revision});
+        replaceId:current?.id,replaceRevision:current?.revision,
+        ...(editorialEnabled ? { editorial: editorialBrief() } : {})});
       if(!active(requestEpoch)) return;
-      current=result.campaign; renderPlan(); notice('План сохранён на VPS. Тексты подготовлены по шаблонам.'); setView('calendar',true);
+      current=result.campaign; generationPolls = 0;
+      renderPlan(); notice(''); setView('calendar',true); monitorGeneration();
     });
   });
   $('cp-calendar-confirm').addEventListener('click',()=>work(async requestEpoch=>{
@@ -359,6 +442,7 @@ export function mountCampaign({api,selectPanel,refreshQueue,onChange}) {
         connected=nextConnected; epoch++;
         if(connected) load();
         else {
+          clearTimeout(generationTimer); editorialEnabled = false;
           current=null; groups=[]; loaded=false; busy=false; selected=null;
           $('cp-form').reset(); $('cp-feed-result').replaceChildren(); $('cp-feed-result').hidden=true;
           $('cp-days').replaceChildren(); $('cp-list').replaceChildren();

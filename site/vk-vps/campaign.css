@@ -79,3 +79,8 @@
 .cp-schedule summary span{color:var(--muted);font-size:.8rem;font-variant-numeric:tabular-nums}
 @media(max-width:865px){.cp-calendar-grid{grid-template-columns:minmax(0,1fr)}.cp-weekdays,.cp-pad,.cp-empty{display:none}.cp-day{min-height:auto}.cp-event{font-size:.82rem}.cp-timing button{width:100%}}
 @media(max-width:390px){.cp-goals{grid-template-columns:minmax(0,1fr)}.cp-editor{border-radius:0}}
+
+#cp-editorial details { margin-block: 12px; }
+#cp-specifics-hint { margin-block-start: -4px; }
+#cp-generation { margin-block-start: 10px; }
+.cp-post .cp-error { margin-block: 6px; }
