@@ -1,5 +1,5 @@
 {
-  "version": "2026-11-18-chg035-scenarios",
+  "version": "2026-11-18-chg036-plan-navigation",
   "mode": "ui-with-vkid",
   "files": [
     {
@@ -139,13 +139,13 @@
     },
     {
       "path": "vk-vps/index.html",
-      "bytes": 35571,
-      "sha256": "70166e23499a4d2df9b5e627335fd6236affc46a468a84b428b78f6cd5569ffa"
+      "bytes": 35703,
+      "sha256": "86cc4499f838c4b302a769cdaa898ea40ea617ff7b9a266bf761bd2b23f24835"
     },
     {
       "path": "vk-vps/app.mjs",
-      "bytes": 51907,
-      "sha256": "be770dd26b51246b1dc3b5649fbe460c9c83b8341f08d730eab1210aed06a157"
+      "bytes": 51987,
+      "sha256": "aeea0d368d2f8e8113999e53e0b12560d7a0a3a8b90690c6c6f33e858af2c186"
     },
     {
       "path": "vk-vps/workspace-search.mjs",
@@ -169,13 +169,13 @@
     },
     {
       "path": "vk-vps/campaign-workspace.mjs",
-      "bytes": 29000,
-      "sha256": "e5da1926d3c209bd18adad16eee756262cac4a6411ee7a14254eb125f51f4df5"
+      "bytes": 29402,
+      "sha256": "835f833a2af236a08209059e5f7d310fb964a21dabac4a746362e1b07d9f661f"
     },
     {
       "path": "vk-vps/campaign.css",
-      "bytes": 6799,
-      "sha256": "4c38da9bf192e006ace0ca9ad9ddfef349fb3d4487f4e6bf4eb08d150132773d"
+      "bytes": 6851,
+      "sha256": "ca4f3c83d784ef5138e1cab0be7a1834980aa9598f44d50b16c8018ee0b7fc2c"
     },
     {
       "path": "vk-vps/outreach-workspace.mjs",

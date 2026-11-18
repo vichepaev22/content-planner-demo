@@ -109,12 +109,22 @@ export function mountCampaign({api,selectPanel,refreshQueue,onChange}) {
     view=next;
     for (const name of ['brief','calendar','posts']) $('cp-'+name).hidden=!loaded||next!==name;
     $('cp-return').hidden=!loaded||!current;
-    $('cp-return').textContent=next==='brief'?'Вернуться к плану':'Новый бриф';
+    $('cp-return').textContent=next==='brief'?'Вернуться к плану':'Новый план';
     $('campaign-title').textContent=next==='brief'?'Новый контент-план':next==='calendar'?'Календарь публикаций':'Публикации';
     $('cp-subtitle').textContent=next==='brief'?'Бриф, календарь и тексты для одного сообщества.'
       :countLabel(current.posts.length)+' · '+dateLabel(current.start)+' — '+dateLabel(current.end);
     renderSummary();
-    if (focus) $('campaign-title').focus({preventScroll:true});
+    if (focus) {
+      const title = $('campaign-title');
+      title.focus({preventScroll:true});
+      const {top, bottom} = title.getBoundingClientRect();
+      if (top < 0 || bottom > innerHeight) title.scrollIntoView({block:'start'});
+    }
+  }
+  function openBrief() {
+    if (!loaded || busy) return false;
+    setView('brief', true);
+    return true;
   }
   function renderSummary() {
     const duration = Number($('cp-duration').value);
@@ -137,6 +147,7 @@ export function mountCampaign({api,selectPanel,refreshQueue,onChange}) {
     $('cp-generate').disabled=busy||preparing||!$('cp-group').value;
     $('cp-reload').disabled=busy;
     $('cp-return').disabled=busy;
+    $('cp-calendar-back').disabled=busy;
     $('cp-group').disabled=busy;
     for (const id of ['cp-time-open','cp-edit-save','cp-time-save','cp-calendar-confirm']) $(id).disabled=busy||preparing||inQueue;
     $('cp-queue-open').disabled=busy||preparing||flagged||!ready||!current?.calendarConfirmed;
@@ -332,7 +343,8 @@ export function mountCampaign({api,selectPanel,refreshQueue,onChange}) {
     scheduleLabel(); errorAt('cp-edit-error',''); $('cp-edit-dialog').showModal();
   }
   $('cp-reload').addEventListener('click',load);
-  $('cp-return').addEventListener('click',()=>{if(view==='brief')setView(current.queueIds?'posts':'calendar',true);else setView('brief',true);});
+  $('cp-return').addEventListener('click',()=>{if(view==='brief')setView(current.queueIds?'posts':'calendar',true);else openBrief();});
+  $('cp-calendar-back').addEventListener('click',openBrief);
   $('cp-form').addEventListener('input',updateForm);
   $('cp-group').addEventListener('change',()=>{ $('cp-feed-result').hidden=true; updateForm(); });
   $('cp-feed').addEventListener('click',()=>work(async requestEpoch=>{
@@ -416,6 +428,7 @@ export function mountCampaign({api,selectPanel,refreshQueue,onChange}) {
   for(const button of document.querySelectorAll('[data-cp-close]')) button.addEventListener('click',()=>{if(!busy) $(button.dataset.cpClose).close();});
   $('cp-png').addEventListener('click',()=>exportCalendar(current,[...dayGroups()],paddingDays()));
   return {
+    openBrief,
     getSearchSnapshot() { return { campaign: current, ready: loaded, groups }; },
     openSearchPost(campaignId, postId) {
       const post = current?.id === campaignId && current.posts.find(item => item.id === postId);

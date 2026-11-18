@@ -1,7 +1,7 @@
 import {saveTabSession,restoreTabSession,clearTabSession} from './tab-session.mjs';
 import { googleSheetCsvUrl, localPublicationTime, parseEditorialPlan, PLAN_MAX_BYTES } from './editorial-plan.mjs';
 import { mountOutreach } from './outreach-workspace.mjs?v=r22';
-import { mountCampaign } from './campaign-workspace.mjs?v=chg035-scenarios';
+import { mountCampaign } from './campaign-workspace.mjs?v=chg036-plan-navigation';
 import { mountWorkspaceSearch } from './workspace-search.mjs?v=chg033-drafts';
 const tabStorage=(()=>{try{return sessionStorage;}catch{return null;}})();
 const $ = id => document.getElementById(id);
@@ -651,7 +651,10 @@ function openEditorialPost(post) {
   selectPanel('composer', true);
 }
 
-for (const button of navigation) button.addEventListener('click', () => selectPanel(button.dataset.panel, true));
+for (const button of navigation) button.addEventListener('click', () => {
+  selectPanel(button.dataset.panel, true);
+  if (button.dataset.panel === 'campaign') campaignUi.openBrief();
+});
 $('sheet-link').addEventListener('input', () => {
   $('sheet-download').hidden = true;
   $('sheet-download').removeAttribute('href');

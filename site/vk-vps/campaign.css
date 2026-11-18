@@ -36,6 +36,7 @@
 .cp-scale,.cp-timing,.cp-calendar-head,.cp-post-controls,.cp-actions{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
 .cp-scale{font-size:.71rem;color:var(--muted)}
 .cp-actions{justify-content:flex-end;margin-top:10px}
+.cp-calendar-actions{justify-content:space-between}
 .cp-cover{position:relative;isolation:isolate;overflow:hidden;padding:18px 20px;border:1px solid #bad0b7;border-radius:16px;background:#e2ecd9}
 .cp-cover::after{content:"";position:absolute;z-index:-1;width:340px;height:150px;right:-30px;top:32px;border:1px solid #79a18799;border-radius:50%;box-shadow:0 10px 0 -1px #e2ecd9,0 11px 0 #79a18799,0 21px 0 -1px #e2ecd9,0 22px 0 #79a18799;rotate:-18deg}
 .cp-cover h2{margin:4px 0;font:clamp(1.85rem,3.5vw,2.75rem)/1.08 Georgia,serif;letter-spacing:-.032em;overflow-wrap:anywhere}
